@@ -1,0 +1,24 @@
+.app {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.kicker {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lede {
+  max-width: 36rem;
+  font-size: 1.125rem;
+}
+
+.page-link {
+  color: var(--accent);
+  font-weight: 650;
+  width: fit-content;
+}

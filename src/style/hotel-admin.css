@@ -1,0 +1,51 @@
+.hotel-admin { color: #24302c; font-size: 14px; }
+.hotel-admin h1 { font-size: 28px; letter-spacing: -0.03em; margin: 0 0 4px; }
+.hotel-admin h2 { font-size: 18px; margin: 0; }
+.hotel-admin p { color: #5c6b73; }
+.admin-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 16px; }
+.admin-head-actions, .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.kpi-body { padding: 14px 16px 16px; }
+.kpi-body strong { display: block; font-size: 28px; line-height: 1.1; color: #14352a; }
+.kpi-body span { color: #66706a; font-size: 12px; }
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+.admin-table-wrap { overflow: auto; }
+.hotel-admin table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hotel-admin th, .hotel-admin td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #e7ebef; vertical-align: top; }
+.hotel-admin th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7780; }
+.hotel-admin tr.clickable { cursor: pointer; }
+.hotel-admin tr.clickable:hover { background: #f7fbf8; }
+.badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 999px; background: #eef2f4; color: #334047; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+.badge[data-status="CONFIRMED"], .badge[data-status="PAID"], .badge[data-status="READY"], .badge[data-status="APPROVED"], .badge[data-status="ACTIVE"] { background: #e5f6ec; color: #14663a; }
+.badge[data-status="PENDING"], .badge[data-status="UNPAID"], .badge[data-status="DIRTY"], .badge[data-status="OPEN"], .badge[data-status="NEW"] { background: #fff4df; color: #8a5a10; }
+.badge[data-status="CHECKED_IN"], .badge[data-status="CLEANING"], .badge[data-status="INSPECTING"] { background: #e7f1fb; color: #1d4f86; }
+.badge[data-status="CANCELLED"], .badge[data-status="FAILED"], .badge[data-status="OUT_OF_SERVICE"], .badge[data-status="REJECTED"] { background: #fdecec; color: #8d2d2d; }
+.ha-btn, .ha-btn-line { min-height: 34px; border-radius: 8px; border: 1px solid #1b3d32; background: #1b3d32; color: #fff; font: inherit; font-size: 13px; padding: 0 12px; cursor: pointer; }
+.ha-btn-line { background: #fff; color: #1b3d32; }
+.ha-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.ha-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.ha-form label, .staff-login label { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: #526068; }
+.hotel-admin input, .hotel-admin select, .hotel-admin textarea, .staff-login input {
+  width: 100%; font: inherit; min-height: 36px; border: 1px solid #d5dde3; border-radius: 8px; padding: 7px 10px; background: #fff; color: #24302c;
+}
+.hotel-admin textarea { min-height: 90px; }
+.span-2 { grid-column: 1 / -1; }
+.alert { padding: 10px 12px; border-radius: 8px; background: #fdecec; color: #8d2d2d; }
+.ok-note { padding: 10px 12px; border-radius: 8px; background: #e5f6ec; color: #14663a; }
+.calendar { display: grid; gap: 6px; overflow-x: auto; }
+.calendar-row { display: grid; grid-template-columns: 180px repeat(14, minmax(42px, 1fr)); gap: 4px; align-items: center; }
+.day-cell { text-align: center; border-radius: 8px; background: #e5f6ec; padding: 6px 0; font-size: 12px; }
+.day-cell.low { background: #fff4df; }
+.day-cell.none { background: #fdecec; }
+.detail-list { display: grid; gap: 6px; margin: 0 0 12px; }
+.detail-list div { display: flex; justify-content: space-between; gap: 12px; }
+.staff-login { min-height: 100vh; display: grid; place-items: center; background: #f4efe6; padding: 24px; }
+.staff-card { width: min(440px, 100%); background: #fffdf9; border: 1px solid #e5d9c9; border-radius: 18px; padding: 28px; }
+.staff-card h1 { font-family: "Playfair Display", Georgia, serif; font-size: 40px; color: #1b3d32; margin: 0 0 8px; }
+.staff-card form { display: grid; gap: 12px; margin-top: 18px; }
+.demo { font-size: 13px; background: #f6f1e8; border-radius: 12px; padding: 10px 12px; }
+.navbar-notices { width: 280px; display: grid; gap: 8px; }
+.navbar-notices p { margin: 0; }
+
+@media (max-width: 900px) {
+  .admin-grid, .ha-form, .calendar-row { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,67 @@
+/* Loader Container */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Adjust height as needed */
+  }
+  /* Loader Styles */
+  .loader {
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Animated EBS Text */
+  .ebs-text {
+    font-size: 24px;
+    margin: 0 5px; /* Adjust spacing between letters */
+    opacity: 0;
+    transform: translateY(20px);
+    animation: appear 1s ease forwards;
+  }
+  
+  /* Animation Keyframes */
+  @keyframes appear {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Delay Animation for Each Letter */
+  .ebs-text:nth-child(1) {
+    animation-delay: 0.2s;
+  }
+  .ebs-text:nth-child(2) {
+    animation-delay: 0.4s;
+  }
+  .ebs-text:nth-child(3) {
+    animation-delay: 0.6s;
+  }
+  .ebs-text:nth-child(4) {
+    animation-delay: 0.8s;
+  }
+  .ebs-text:nth-child(5) {
+    animation-delay: 1.0s;
+  }
+  .ebs-text:nth-child(6) {
+    animation-delay: 1.2s;
+  }
+  .ebs-text:nth-child(7) {
+    animation-delay: 1.4s;
+  }
+
+  .loader-slogan {
+    margin: 12px 0 0;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    animation: appear 0.8s ease 1s forwards;
+  }

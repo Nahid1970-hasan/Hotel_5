@@ -1,0 +1,123 @@
+.icons-page {
+  gap: 16px;
+}
+
+.icons-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.icons-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 240px;
+  min-width: 220px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--sidebar-line, #e7ebef);
+  border-radius: 10px;
+  background: #fff;
+  color: #66717e;
+}
+
+.icons-search .material-icons {
+  font-size: 20px;
+}
+
+.icons-search input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #3e4854;
+  font: inherit;
+  font-size: 14px;
+}
+
+.icons-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.icons-styles button {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--sidebar-line, #e7ebef);
+  border-radius: 999px;
+  background: #fff;
+  color: #5c6774;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.icons-styles button.is-active {
+  border-color: #0c6e45;
+  background: #e8f6ef;
+  color: #0c6e45;
+  font-weight: 650;
+}
+
+.icons-count,
+.icons-empty {
+  margin: 0;
+  color: #8b95a1;
+  font-size: 13px;
+}
+
+.icons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.icon-card {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 8px;
+  border: 1px solid var(--sidebar-line, #e7ebef);
+  border-radius: 12px;
+  background: #fff;
+  color: #3e4854;
+  cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: 96px 132px;
+}
+
+.icon-card:hover,
+.icon-card:focus-visible {
+  border-color: #0c6e45;
+  background: #f4fbf7;
+  outline: none;
+}
+
+.icon-card .material-icons,
+.icon-card .material-icons-outlined,
+.icon-card .material-icons-round,
+.icon-card .material-icons-sharp,
+.icon-card .material-icons-two-tone {
+  font-size: 28px;
+  color: #0c6e45;
+}
+
+.icon-card-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #5c6774;
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
