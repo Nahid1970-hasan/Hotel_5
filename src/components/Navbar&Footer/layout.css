@@ -1,3 +1,9 @@
+body:has(.shell) {
+  background: #f4f6f8;
+  color: #3e4854;
+  color-scheme: light;
+}
+
 .shell {
   --sidebar-green: #0c6e45;
   --sidebar-text: #3e4854;
@@ -231,6 +237,9 @@
 .sidebar-group-text {
   flex: 1;
   min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-icon,
@@ -239,10 +248,12 @@
 }
 
 .sidebar-icon {
-  width: auto;
-  height: auto;
-  font-size: 20px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  font-size: 22px;
+  line-height: 24px;
+  text-align: center;
   color: #66717e;
 }
 
@@ -450,6 +461,11 @@
   flex: 1;
   overflow: auto;
   padding: 20px;
+  background: #f4f6f8;
+}
+
+.shell svg {
+  flex: none;
 }
 
 .shell-content:has(.dash) {

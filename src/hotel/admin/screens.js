@@ -854,7 +854,7 @@ export function UsersPage() {
   const { call } = useAdmin()
   const users = useData(() => call('/admin/users'), [])
   const roles = useData(() => call('/admin/roles'), [])
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Front Desk' })
+  const [form, setForm] = useState({ name: '', username: '', phone: '', email: '', password: '', role: 'Front Desk' })
   const [error, setError] = useState('')
 
   const create = async (event) => {
@@ -878,7 +878,9 @@ export function UsersPage() {
       {error && <p className="alert">{error}</p>}
       <Card title="New staff account">
         <form className="ha-form" onSubmit={create}>
-          <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
+          <label>Full name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
+          <label>Username<input required minLength={3} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
+          <label>Phone<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
           <label>Email<input type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
           <label>Password<input type="password" required minLength={8} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
           <label>Role
@@ -893,7 +895,9 @@ export function UsersPage() {
         <Table
           rows={users.data || []}
           columns={[
-            { key: 'name', label: 'Name' },
+            { key: 'name', label: 'Full name' },
+            { key: 'username', label: 'Username' },
+            { key: 'phone', label: 'Phone' },
             { key: 'email', label: 'Email' },
             { key: 'roles', label: 'Role', render: (row) => row.roles.join(', ') },
             { key: 'status', label: 'Status', render: (row) => <Badge value={row.status} /> },

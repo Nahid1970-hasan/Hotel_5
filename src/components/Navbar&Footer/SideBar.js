@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
 export const MENU = [
-  { label: 'Front Office', icon: 'concierge', items: ['Dashboard', 'Arrivals', 'Reservations', 'Guests'] },
+  { label: 'Front Office', icon: 'room_service', items: ['Dashboard', 'Arrivals', 'Reservations', 'Guests'] },
   { label: 'Rooms', icon: 'hotel', items: ['Room Types', 'Physical Rooms', 'Inventory'] },
   { label: 'Revenue', icon: 'payments', items: ['Rate Plans', 'Payments', 'Reports'] },
   { label: 'Operations', icon: 'cleaning_services', items: ['Housekeeping', 'Maintenance', 'Services'] },
@@ -99,8 +99,8 @@ export default function SideBar({ collapsed, onToggle, query, onLogout, user }) 
         </span>
       </button>
 
-      <Link className="sidebar-brand" to="/admin/front-office/dashboard" aria-label="Grand Horizon desk">
-        <span className="sidebar-logo-full">Horizon</span>
+      <Link className="sidebar-brand" to="/admin/front-office/dashboard" aria-label="Luxury Hotel desk">
+        <span className="sidebar-logo-full">Luxury Hotel</span>
         <span className="sidebar-logo-mark">H</span>
       </Link>
 
@@ -143,7 +143,7 @@ export default function SideBar({ collapsed, onToggle, query, onLogout, user }) 
         <nav className="sidebar-nav" aria-label="Main">
           {groups.length === 0 && <p className="sidebar-empty">No matches</p>}
           {groups.map((group) => {
-            const active = location.pathname.startsWith(`/${slug(group.label)}/`)
+            const active = location.pathname.startsWith(`/admin/${slug(group.label)}/`)
             const expanded = Boolean(needle) || openGroup === group.label
             return (
               <div key={group.label} className={active ? 'sidebar-group is-active' : 'sidebar-group'}>

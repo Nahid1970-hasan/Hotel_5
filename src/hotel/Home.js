@@ -23,7 +23,7 @@ export default function Home() {
   return (
     <>
       <section className="hero" aria-label="Introduction">
-        <img src={hero} alt="Grand Horizon seen from the beach side" />
+        <img src={hero} alt="Luxury Hotel seen from the beach side" />
         <div className="hero-copy">
           <p className="kicker">Cox&apos;s Bazar · Five-star stay</p>
           <h1>The bay, at a quieter pace.</h1>

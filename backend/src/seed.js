@@ -59,21 +59,22 @@ async function seed(helpers) {
     keys.forEach((key) => insert('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roleId, permissionIds[key]]))
   })
 
-  async function staff(name, email, password, role) {
+  async function staff(name, username, email, password, role, phone = null) {
     const id = insert(
-      `INSERT INTO users (name, email, password_hash, kind, status) VALUES (?, ?, ?, 'staff', 'ACTIVE')`,
-      [name, email, await bcrypt.hash(password, 10)],
+      `INSERT INTO users (name, username, email, password_hash, phone, kind, status) VALUES (?, ?, ?, ?, ?, 'staff', 'ACTIVE')`,
+      [name, username, email, await bcrypt.hash(password, 10), phone],
     )
     insert('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [id, roleIds[role]])
     return id
   }
 
-  await staff('Amira Rahman', 'amira.rahman@grandhorizon.hotel', 'Horizon#2026', 'Super Admin')
-  const deskId = await staff('Karim Hossain', 'karim.hossain@grandhorizon.hotel', 'Desk#2026', 'Front Desk')
-  await staff('Nusrat Ahmed', 'nusrat.ahmed@grandhorizon.hotel', 'House#2026', 'Housekeeping')
+  await staff('Amira Rahman', 'amira.rahman', 'amira@gmail.com', 'Horizon#2026', 'Front Desk')
+  await staff('Hasan', 'hasan', 'hasan@gmail.com', 'hasan1970', 'Super Admin')
+  const deskId = await staff('Karim Hossain', 'karim.hossain', 'karim.hossain@grandhorizon.hotel', 'Desk#2026', 'Front Desk')
+  await staff('Nusrat Ahmed', 'nusrat.ahmed', 'nusrat.ahmed@grandhorizon.hotel', 'House#2026', 'Housekeeping')
   const guestUserId = insert(
-    `INSERT INTO users (name, email, password_hash, phone, kind, status) VALUES (?, ?, ?, ?, 'guest', 'ACTIVE')`,
-    ['Lina Moreau', 'lina.moreau@example.com', await bcrypt.hash('Guest#2026', 10), '+33 6 12 44 90 18'],
+    `INSERT INTO users (name, username, email, password_hash, phone, kind, status) VALUES (?, ?, ?, ?, ?, 'guest', 'ACTIVE')`,
+    ['Lina Moreau', 'lina.moreau', 'lina.moreau@example.com', await bcrypt.hash('Guest#2026', 10), '+33 6 12 44 90 18'],
   )
 
   insert(

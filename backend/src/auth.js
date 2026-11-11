@@ -32,6 +32,7 @@ function publicUser(user) {
   return {
     id: user.id,
     name: user.name,
+    username: user.username,
     email: user.email,
     phone: user.phone,
     kind: user.kind,
@@ -41,19 +42,30 @@ function publicUser(user) {
   }
 }
 
+const STAFF_LOGIN_ROLES = ['Super Admin', 'Front Desk']
+
 function sign(user) {
   return jwt.sign({ sub: user.id, kind: user.kind }, secret, { expiresIn: '12h' })
+}
+
+function canSignIn(user) {
+  return publicUser(user).roles.some((role) => STAFF_LOGIN_ROLES.includes(role))
 }
 
 async function login(email, password, portal) {
   const key = `login:${String(email || '').toLowerCase()}`
   if (!rateLimit(key, 8, 15 * 60 * 1000)) throw problem(429, 'Too many sign-in attempts. Wait and try again.', 'RATE_LIMIT')
-  const user = db.get(`SELECT * FROM users WHERE email = ? COLLATE NOCASE`, [String(email || '').trim()])
-  if (!user || user.status !== 'ACTIVE') throw problem(401, 'Email or password is incorrect', 'AUTH')
+  const loginId = String(email || '').trim()
+  const user = db.get(
+    `SELECT * FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE`,
+    [loginId, loginId],
+  )
+  if (!user || user.status !== 'ACTIVE') throw problem(401, 'Username or password is incorrect', 'AUTH')
   const match = await bcrypt.compare(String(password || ''), user.password_hash)
-  if (!match) throw problem(401, 'Email or password is incorrect', 'AUTH')
+  if (!match) throw problem(401, 'Username or password is incorrect', 'AUTH')
   if (portal === 'staff' && user.kind !== 'staff') throw problem(403, 'This sign-in is for hotel staff', 'PORTAL')
   if (portal === 'guest' && user.kind !== 'guest') throw problem(403, 'Use the staff sign-in for this account', 'PORTAL')
+  if (portal === 'staff' && !canSignIn(user)) throw problem(403, 'Only Super Admin and Front Desk can sign in', 'PORTAL')
   const profile = publicUser(user)
   return { token: sign(user), user: profile }
 }
@@ -76,6 +88,9 @@ function requireUser(kind) {
     const user = readUser(req)
     if (!user) return next(problem(401, 'Sign in to continue', 'AUTH'))
     if (kind && user.kind !== kind) return next(problem(403, 'You cannot open this area', 'FORBIDDEN'))
+    if (kind === 'staff' && !user.roles.some((role) => STAFF_LOGIN_ROLES.includes(role))) {
+      return next(problem(403, 'Only Super Admin and Front Desk can sign in', 'FORBIDDEN'))
+    }
     req.user = user
     return next()
   }

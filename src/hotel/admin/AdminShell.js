@@ -4,6 +4,7 @@ import Footer from '../../components/Navbar&Footer/Footer'
 import Navbar from '../../components/Navbar&Footer/Navbar'
 import SideBar from '../../components/Navbar&Footer/SideBar'
 import { api, setToken, token } from '../api'
+import '../../components/Navbar&Footer/layout.css'
 import '../../style/hotel-admin.css'
 
 const AdminContext = createContext(null)
@@ -118,14 +119,14 @@ export function AdminLogin() {
         <p>Reservations, rooms, and the house books.</p>
         <form onSubmit={submit}>
           {error && <p className="alert">{error}</p>}
-          <label>Email<input type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
+          <label>Email or username<input type="text" required autoComplete="username" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
           <label>Password<input type="password" required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
           <button className="ha-btn" type="submit">Sign in</button>
         </form>
         <div className="demo">
-          <p>Super admin: amira.rahman@grandhorizon.hotel / Horizon#2026</p>
+          <p>Super admin: hasan@gmail.com / hasan1970</p>
+          <p>Front desk: amira@gmail.com / Horizon#2026</p>
           <p>Front desk: karim.hossain@grandhorizon.hotel / Desk#2026</p>
-          <p>Housekeeping: nusrat.ahmed@grandhorizon.hotel / House#2026</p>
         </div>
       </div>
     </div>

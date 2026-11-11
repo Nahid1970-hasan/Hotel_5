@@ -569,7 +569,7 @@ router.patch('/offers/:id', requirePermission('content.manage'), wrap((req, res)
 }))
 
 router.get('/users', requirePermission('user.manage'), wrap((req, res) => {
-  const users = db.all(`SELECT id, name, email, phone, status, kind, created_at FROM users WHERE kind = 'staff' ORDER BY name`)
+  const users = db.all(`SELECT id, name, username, email, phone, status, kind, created_at FROM users WHERE kind = 'staff' ORDER BY name`)
   const withRoles = users.map((user) => ({
     ...user,
     roles: db.all(
@@ -586,17 +586,20 @@ router.get('/roles', requirePermission('user.manage'), wrap((req, res) => {
 
 router.post('/users', requirePermission('user.manage'), wrap((req, res) => {
   const name = String(req.body.name || '').trim()
+  const username = String(req.body.username || '').trim().toLowerCase()
   const email = String(req.body.email || '').trim().toLowerCase()
   const password = String(req.body.password || '')
+  const phone = String(req.body.phone || '').trim()
   const role = db.get(`SELECT * FROM roles WHERE name = ?`, [req.body.role])
-  if (name.length < 2 || !email.includes('@') || password.length < 8 || !role) {
-    throw problem(422, 'Name, email, an 8-character password, and a role are required', 'INVALID')
+  if (name.length < 2 || !/^[a-z0-9._-]{3,}$/.test(username) || !email.includes('@') || password.length < 8 || !role) {
+    throw problem(422, 'Full name, username, email, an 8-character password, and a role are required', 'INVALID')
   }
   if (db.get(`SELECT id FROM users WHERE email = ? COLLATE NOCASE`, [email])) throw problem(409, 'That email is already in use', 'DUPLICATE')
+  if (db.get(`SELECT id FROM users WHERE username = ? COLLATE NOCASE`, [username])) throw problem(409, 'That username is already in use', 'DUPLICATE')
   const id = db.transaction(() => {
     const userId = db.insert(
-      `INSERT INTO users (name, email, password_hash, phone, kind, status) VALUES (?, ?, ?, ?, 'staff', 'ACTIVE')`,
-      [name, email, bcrypt.hashSync(password, 10), req.body.phone || null],
+      `INSERT INTO users (name, username, email, password_hash, phone, kind, status) VALUES (?, ?, ?, ?, ?, 'staff', 'ACTIVE')`,
+      [name, username, email, bcrypt.hashSync(password, 10), phone || null],
     )
     db.insert(`INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`, [userId, role.id])
     domain.audit(req.user.id, 'user.create', 'user', userId, null, { email, role: role.name })

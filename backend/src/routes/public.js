@@ -9,6 +9,17 @@ const { problem, send } = require('../http')
 const router = Router()
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
+function usernameFrom(email) {
+  const raw = String(email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '')
+  const base = raw || 'guest'
+  let candidate = base
+  let suffix = 1
+  while (db.get(`SELECT id FROM users WHERE username = ? COLLATE NOCASE`, [candidate])) {
+    candidate = `${base}${suffix++}`
+  }
+  return candidate
+}
+
 function hotelProfile() {
   const hotel = domain.settings()
   return {
@@ -115,8 +126,8 @@ router.post('/auth/register', wrap(async (req, res) => {
   }
   const data = db.transaction(() => {
     const userId = db.insert(
-      `INSERT INTO users (name, email, password_hash, phone, kind) VALUES (?, ?, ?, ?, 'guest')`,
-      [name, email, bcrypt.hashSync(password, 10), phone || null],
+      `INSERT INTO users (name, username, email, password_hash, phone, kind) VALUES (?, ?, ?, ?, ?, 'guest')`,
+      [name, usernameFrom(email), email, bcrypt.hashSync(password, 10), phone || null],
     )
     const existingGuest = db.get(`SELECT * FROM guests WHERE email = ? COLLATE NOCASE AND user_id IS NULL`, [email])
     if (existingGuest) {
@@ -132,7 +143,8 @@ router.post('/auth/register', wrap(async (req, res) => {
 
 router.post('/auth/login', wrap(async (req, res) => {
   const portal = req.body.portal === 'staff' ? 'staff' : 'guest'
-  const session = await login(req.body.email, req.body.password, portal)
+  const loginId = req.body.username || req.body.email
+  const session = await login(loginId, req.body.password, portal)
   send(res, session, 'Signed in')
 }))
 

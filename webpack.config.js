@@ -89,6 +89,12 @@ module.exports = (env, argv) => {
         components: path.resolve(__dirname, 'src/components'),
       },
     },
+    ignoreWarnings: [
+      {
+        module: /react-datepicker[\\/]dist[\\/]index\.es\.js/,
+        message: /Critical dependency/,
+      },
+    ],
     plugins: [
       new HtmlWebpackPlugin({
         template: './public/index.html',
@@ -98,6 +104,12 @@ module.exports = (env, argv) => {
     devServer: {
       static: {
         directory: path.resolve(__dirname, 'public'),
+      },
+      client: {
+        overlay: {
+          errors: true,
+          warnings: false,
+        },
       },
       host: 'localhost',
       port,

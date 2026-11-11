@@ -1,10 +1,59 @@
-import { useEffect, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { shift } from '@floating-ui/react'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+
+const popperModifiers = [shift({ padding: 12 })]
 import { addDays, api, money, nightCount, prettyDate } from './api'
 import { PageIntro, useGuest } from './PublicLayout'
 
+function isoToDate(iso) {
+  if (!iso) return null
+  const [year, month, day] = iso.slice(0, 10).split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function dateToIso(date) {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const DateTrigger = forwardRef(function DateTrigger({ value, onClick, id, ...rest }, ref) {
+  const empty = !value
+  return (
+    <button
+      {...rest}
+      id={id}
+      ref={ref}
+      type="button"
+      className={empty ? 'date-trigger is-empty' : 'date-trigger'}
+      onClick={onClick}
+      aria-haspopup="dialog"
+    >
+      {empty ? 'Add date' : value}
+    </button>
+  )
+})
+
+function StayRangeNote({ checkIn, checkOut }) {
+  return (
+    <div className="stay-cal-foot">
+      <span>{!checkIn ? 'Select check-in' : !checkOut ? 'Select check-out' : `${prettyDate(checkIn)} – ${prettyDate(checkOut)}`}</span>
+      {checkIn && checkOut ? <span>{nightCount(checkIn, checkOut)} nights</span> : null}
+    </div>
+  )
+}
+
 export function SearchForm({ hotel, values }) {
   const navigate = useNavigate()
+  const checkInRef = useRef(null)
+  const checkOutRef = useRef(null)
+  const [openField, setOpenField] = useState(null)
   const [form, setForm] = useState({
     checkIn: values?.checkIn || '',
     checkOut: values?.checkOut || '',
@@ -12,6 +61,10 @@ export function SearchForm({ hotel, values }) {
     children: values?.children || '0',
     rooms: values?.rooms || '1',
   })
+  const today = hotel?.today || dateToIso(new Date())
+  const todayDate = isoToDate(today)
+  const checkInDate = isoToDate(form.checkIn)
+  const checkOutDate = isoToDate(form.checkOut)
 
   useEffect(() => {
     if (!hotel?.today || form.checkIn) return
@@ -31,16 +84,90 @@ export function SearchForm({ hotel, values }) {
 
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
 
+  const pickCheckIn = (date) => {
+    if (!date) return
+    const iso = dateToIso(date)
+    const keepOut = Boolean(form.checkOut && form.checkOut > iso)
+    setForm((current) => ({
+      ...current,
+      checkIn: iso,
+      checkOut: keepOut ? current.checkOut : '',
+    }))
+    if (!keepOut) window.setTimeout(() => checkOutRef.current?.setOpen(true), 0)
+  }
+
+  const pickCheckOut = (date) => {
+    if (!date) return
+    setForm((current) => ({ ...current, checkOut: dateToIso(date) }))
+  }
+
   const submit = (event) => {
     event.preventDefault()
+    if (!form.checkIn || !form.checkOut || form.checkOut <= form.checkIn) {
+      const field = form.checkIn ? checkOutRef : checkInRef
+      field.current?.setOpen(true)
+      return
+    }
     const params = new URLSearchParams(form)
     navigate(`/availability?${params.toString()}`)
   }
 
   return (
     <form className="search" onSubmit={submit}>
-      <label>Check in<input type="date" required value={form.checkIn} min={hotel?.today} onChange={set('checkIn')} /></label>
-      <label>Check out<input type="date" required value={form.checkOut} min={form.checkIn || hotel?.today} onChange={set('checkOut')} /></label>
+      <div className={openField === 'checkIn' ? 'date-field is-open' : 'date-field'}>
+        <label htmlFor="stay-check-in">Check in</label>
+        <DatePicker
+          id="stay-check-in"
+          ref={checkInRef}
+          selected={checkInDate}
+          onChange={pickCheckIn}
+          selectsStart
+          startDate={checkInDate}
+          endDate={checkOutDate}
+          minDate={todayDate}
+          openToDate={checkInDate || todayDate}
+          monthsShown={1}
+          dateFormat="d MMM yyyy"
+          calendarStartDay={0}
+          showPopperArrow={false}
+          popperPlacement="bottom-start"
+          popperModifiers={popperModifiers}
+          calendarClassName="stay-cal"
+          popperClassName="stay-cal-popper"
+          customInput={<DateTrigger />}
+          onCalendarOpen={() => setOpenField('checkIn')}
+          onCalendarClose={() => setOpenField((current) => (current === 'checkIn' ? null : current))}
+        >
+          <StayRangeNote checkIn={form.checkIn} checkOut={form.checkOut} />
+        </DatePicker>
+      </div>
+      <div className={openField === 'checkOut' ? 'date-field date-field-out is-open' : 'date-field date-field-out'}>
+        <label htmlFor="stay-check-out">Check out</label>
+        <DatePicker
+          id="stay-check-out"
+          ref={checkOutRef}
+          selected={checkOutDate}
+          onChange={pickCheckOut}
+          selectsEnd
+          startDate={checkInDate}
+          endDate={checkOutDate}
+          minDate={form.checkIn ? isoToDate(addDays(form.checkIn, 1)) : todayDate}
+          openToDate={checkOutDate || checkInDate || todayDate}
+          monthsShown={1}
+          dateFormat="d MMM yyyy"
+          calendarStartDay={0}
+          showPopperArrow={false}
+          popperPlacement="bottom-end"
+          popperModifiers={popperModifiers}
+          calendarClassName="stay-cal"
+          popperClassName="stay-cal-popper"
+          customInput={<DateTrigger />}
+          onCalendarOpen={() => setOpenField('checkOut')}
+          onCalendarClose={() => setOpenField((current) => (current === 'checkOut' ? null : current))}
+        >
+          <StayRangeNote checkIn={form.checkIn} checkOut={form.checkOut} />
+        </DatePicker>
+      </div>
       <label>Adults<input type="number" min="1" max="8" required value={form.adults} onChange={set('adults')} /></label>
       <label>Children<input type="number" min="0" max="6" value={form.children} onChange={set('children')} /></label>
       <label>Rooms<input type="number" min="1" max="5" required value={form.rooms} onChange={set('rooms')} /></label>

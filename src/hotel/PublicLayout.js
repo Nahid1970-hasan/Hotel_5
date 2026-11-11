@@ -58,7 +58,7 @@ export default function PublicLayout() {
 
   useEffect(() => {
     const previous = document.title
-    document.title = hotel ? `${hotel.name}` : 'Grand Horizon Luxury Hotel'
+    document.title = hotel ? `${hotel.name}` : 'Luxury Hotel'
     return () => {
       document.title = previous
     }
@@ -70,7 +70,7 @@ export default function PublicLayout() {
         <a className="skip" href="#content">Skip to content</a>
         <header className={scrolled ? 'topbar is-scrolled' : 'topbar'}>
           <Link className="brand" to="/">
-            <strong>Grand Horizon</strong>
+            <strong>Luxury Hotel</strong>
             <span>Cox&apos;s Bazar</span>
           </Link>
           <button type="button" className="btn light menu-btn" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
@@ -92,7 +92,7 @@ export default function PublicLayout() {
         <footer className="site-footer">
           <div className="foot-grid">
             <div>
-              <h2>Grand Horizon</h2>
+              <h2>Luxury Hotel</h2>
               <p>{hotel?.address || "Marine Drive, Kolatoli, Cox's Bazar"}</p>
               <p>{hotel?.phone} · {hotel?.email}</p>
             </div>
@@ -126,7 +126,7 @@ export default function PublicLayout() {
             </div>
           </div>
           <div className="legal">
-            <span>© {new Date().getFullYear()} Grand Horizon Luxury Hotel</span>
+            <span>© {new Date().getFullYear()} Luxury Hotel</span>
             <span>Check-in {hotel?.checkInTime || '15:00'} · Check-out {hotel?.checkOutTime || '12:00'} · {hotel?.timezone || 'Asia/Dhaka'}</span>
           </div>
         </footer>

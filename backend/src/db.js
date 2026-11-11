@@ -101,7 +101,60 @@ async function init(seed) {
     await seed({ all, get, run, insert, hotelToday, addDays, eachNight, parseDate })
     persist()
   }
+  ensureUsernames()
   db.run('PRAGMA foreign_keys = ON')
+}
+
+function ensureUsernames() {
+  const columns = all('PRAGMA table_info(users)').map((column) => column.name)
+  let changed = false
+  if (!columns.includes('username')) {
+    run('ALTER TABLE users ADD COLUMN username TEXT')
+    changed = true
+  }
+  const users = all('SELECT id, email, username FROM users')
+  for (const user of users) {
+    if (user.username) continue
+    const raw = String(user.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '')
+    const base = raw || `user${user.id}`
+    let candidate = base
+    let suffix = 1
+    while (get('SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id != ?', [candidate, user.id])) {
+      candidate = `${base}${suffix++}`
+    }
+    run('UPDATE users SET username = ? WHERE id = ?', [candidate, user.id])
+    changed = true
+  }
+  run('CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique ON users(username)')
+  const hasan = get(`SELECT id, email FROM users WHERE username = 'hasan' COLLATE NOCASE`)
+  if (hasan && String(hasan.email).toLowerCase() !== 'hasan@gmail.com') {
+    const taken = get(`SELECT id FROM users WHERE email = 'hasan@gmail.com' COLLATE NOCASE AND id != ?`, [hasan.id])
+    if (!taken) {
+      run(`UPDATE users SET email = ? WHERE id = ?`, ['hasan@gmail.com', hasan.id])
+      changed = true
+    }
+  }
+  const amira = get(`SELECT id, email FROM users WHERE username = 'amira.rahman' COLLATE NOCASE`)
+  if (amira && String(amira.email).toLowerCase() !== 'amira@gmail.com') {
+    const taken = get(`SELECT id FROM users WHERE email = 'amira@gmail.com' COLLATE NOCASE AND id != ?`, [amira.id])
+    if (!taken) {
+      run(`UPDATE users SET email = ? WHERE id = ?`, ['amira@gmail.com', amira.id])
+      changed = true
+    }
+  }
+  if (amira) {
+    const frontDesk = get(`SELECT id FROM roles WHERE name = ?`, ['Front Desk'])
+    const currentRole = get(
+      `SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id = r.id WHERE ur.user_id = ?`,
+      [amira.id],
+    )
+    if (frontDesk && (!currentRole || currentRole.name !== 'Front Desk')) {
+      run(`DELETE FROM user_roles WHERE user_id = ?`, [amira.id])
+      run(`INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`, [amira.id, frontDesk.id])
+      changed = true
+    }
+  }
+  if (changed) persist()
 }
 
 module.exports = {
