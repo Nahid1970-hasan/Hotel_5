@@ -17,10 +17,10 @@ const FIELDS = [
 ];
 const STATUSES = [
     { id: "ALL", name: "All", label: "All" },
-    { id: "DRAFT", name: "Draft", label: "Draft" },
+    { id: "PENDING", name: "Pending", label: "Pending" },
     { id: "SUBMITTED", name: "Submitted", label: "Submitted" },
     { id: "APPROVED", name: "Approved", label: "Approved" },
-    { id: "REJECTED", name: "Rejected", label: "Rejected" },
+    // { id: "REJECTED", name: "Rejected", label: "Rejected" },
 ];
 
 function blank() {
@@ -147,7 +147,7 @@ export default function RoomsAndSuits() {
             items={[
                 { label: "Edit", command: () => openEdit(row) },
                 ["DRAFT", "REJECTED"].includes(row.status) && { label: "Submit", command: () => submit(row) },
-                { label: "Details", command: () => { setDetails(row); setDetailsOpen(true); } },
+                // { label: "Details", command: () => { setDetails(row); setDetailsOpen(true); } },
                 { label: "Delete", command: () => remove(row) },
             ]}
         />
@@ -171,8 +171,8 @@ export default function RoomsAndSuits() {
                     selectedAutoValue={STATUSES}
                     setSelectedAutoValue={setStatusOptions}
                 />
-                <InputField id="startDate" name="startDate" type="date" labelFor="startDate" label="Select Start Date" width="full" value={startDate} onChange={(event) => setStartDate(event.target?.value || event.value || null)} />
-                <InputField id="endDate" name="endDate" type="date" labelFor="endDate" label="Select End Date" width="full" value={endDate} onChange={(event) => setEndDate(event.target?.value || event.value || null)} />
+                {/* <InputField id="startDate" name="startDate" type="date" labelFor="startDate" label="Select Start Date" width="full" value={startDate} onChange={(event) => setStartDate(event.target?.value || event.value || null)} />
+                <InputField id="endDate" name="endDate" type="date" labelFor="endDate" label="Select End Date" width="full" value={endDate} onChange={(event) => setEndDate(event.target?.value || event.value || null)} /> */}
                 <div>
                     <CommonButton type="submit" className="p-mr-2 p-button-raised p-button-primary" title="Search" label="Search" icon="pi pi-search" />
                 </div>
