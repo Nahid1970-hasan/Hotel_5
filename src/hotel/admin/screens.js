@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'react-toastify'
 import Card from '../../components/Card'
 import { Flex } from '../../components/Flex'
 import InfoCard from '../../components/InfoCard'
 import { money, prettyDate } from '../api'
+import ImageUpload from '../ImageUpload'
 import { useAdmin } from './AdminShell'
+import { ActionMenu, Btn, Field, FormModal, Table } from './ui'
 
 function useData(loader, deps) {
   const [data, setData] = useState(null)
@@ -25,26 +28,6 @@ function useData(loader, deps) {
 
 function Badge({ value }) {
   return <span className="badge" data-status={value}>{value}</span>
-}
-
-function Table({ columns, rows }) {
-  if (!rows?.length) return <p>Nothing to show.</p>
-  return (
-    <div className="admin-table-wrap">
-      <table>
-        <thead>
-          <tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id || row.reference}>
-              {columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : row[column.key]}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
 }
 
 function Page({ title, lede, children }) {
@@ -81,7 +64,6 @@ export function DashboardPage() {
 
   return (
     <Page title="Dashboard" lede={today ? `Hotel date ${prettyDate(today)}` : 'Loading the day'}>
-      {board.error && <p className="alert">{board.error}</p>}
       <Flex row>
         {kpis.map(([label, value, note]) => (
           <Flex key={label} md={3} xs={12}>
@@ -115,7 +97,6 @@ export function ArrivalsPage() {
   const rows = (bookings.data || []).filter((item) => item.checkIn === today || item.checkOut === today)
   return (
     <Page title="Arrivals" lede="Today's arrivals and departures.">
-      {bookings.error && <p className="alert">{bookings.error}</p>}
       <Card title="Front desk" subTitle={today ? prettyDate(today) : ''}>
         <BookingList rows={rows} onChanged={bookings.reload} />
       </Card>
@@ -123,7 +104,7 @@ export function ArrivalsPage() {
   )
 }
 
-function BookingList({ rows, onChanged }) {
+function BookingList({ rows, onChanged, onNew }) {
   const { call } = useAdmin()
   const [error, setError] = useState('')
   const act = async (path) => {
@@ -137,9 +118,9 @@ function BookingList({ rows, onChanged }) {
   }
   return (
     <>
-      {error && <p className="alert">{error}</p>}
       <Table
         rows={rows}
+        onNew={onNew}
         columns={[
           { key: 'reference', label: 'Reference' },
           { key: 'guest', label: 'Guest', render: (row) => row.guest.name },
@@ -151,11 +132,11 @@ function BookingList({ rows, onChanged }) {
             key: 'actions',
             label: '',
             render: (row) => (
-              <div className="row-actions">
-                {row.status === 'CONFIRMED' && <button className="ha-btn" type="button" onClick={() => act(`/admin/bookings/${row.id}/check-in`)}>Check in</button>}
-                {row.status === 'CHECKED_IN' && <button className="ha-btn" type="button" onClick={() => act(`/admin/bookings/${row.id}/check-out`)}>Check out</button>}
-                {['CONFIRMED', 'PENDING'].includes(row.status) && <button className="ha-btn-line" type="button" onClick={() => act(`/admin/bookings/${row.id}/cancel`)}>Cancel</button>}
-              </div>
+              <ActionMenu items={[
+                row.status === 'CONFIRMED' && { label: 'Check in', onClick: () => act(`/admin/bookings/${row.id}/check-in`) },
+                row.status === 'CHECKED_IN' && { label: 'Check out', onClick: () => act(`/admin/bookings/${row.id}/check-out`) },
+                ['CONFIRMED', 'PENDING'].includes(row.status) && { label: 'Cancel', onClick: () => act(`/admin/bookings/${row.id}/cancel`) },
+              ]} />
             ),
           },
         ]}
@@ -172,14 +153,15 @@ export function ReservationsPage() {
   const types = useData(() => call('/admin/room-types'), [])
   const rates = useData(() => call('/admin/rates'), [])
   const [form, setForm] = useState({ guestName: '', guestEmail: '', guestPhone: '', roomTypeId: '', ratePlanId: '', checkIn: '', checkOut: '', adults: 2, children: 0, rooms: 1, source: 'walk-in' })
-  const [message, setMessage] = useState('')
+  const [open, setOpen] = useState(false)
+  const blankForm = { guestName: '', guestEmail: '', guestPhone: '', roomTypeId: '', ratePlanId: '', checkIn: '', checkOut: '', adults: 2, children: 0, rooms: 1, source: 'walk-in' }
 
   const create = async (event) => {
     event.preventDefault()
-    setMessage('')
     try {
       const result = await call('/admin/bookings', {
         method: 'POST',
+        notify: 'error',
         body: {
           roomTypeId: Number(form.roomTypeId),
           ratePlanId: Number(form.ratePlanId),
@@ -193,29 +175,29 @@ export function ReservationsPage() {
           guest: { name: form.guestName, email: form.guestEmail, phone: form.guestPhone },
         },
       })
-      setMessage(`${result.data.reference} created.`)
+      toast.success(`${result.data.reference} created.`)
+      setForm(blankForm)
+      setOpen(false)
       bookings.reload()
-    } catch (err) {
-      setMessage(err.message)
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   return (
     <Page title="Reservations" lede="Search the book, or take a walk-in.">
       <div className="admin-head-actions" style={{ marginBottom: 12 }}>
-        <input placeholder="Reference, name, or email" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search reservations" />
+        <Field label="Search reservations" placeholder="Reference, name, or email" value={query} onChange={(event) => setQuery(event.target.value)} />
         <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Status">
           <option value="">All statuses</option>
           {['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'].map((item) => <option key={item}>{item}</option>)}
         </select>
       </div>
-      {bookings.error && <p className="alert">{bookings.error}</p>}
-      {message && <p className="ok-note">{message}</p>}
-      <Card title="Book" subTitle="Price is calculated on the server">
+      <FormModal open={open} title="New reservation" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={create}>
-          <label>Guest<input required value={form.guestName} onChange={(event) => setForm({ ...form, guestName: event.target.value })} /></label>
-          <label>Email<input type="email" required value={form.guestEmail} onChange={(event) => setForm({ ...form, guestEmail: event.target.value })} /></label>
-          <label>Phone<input value={form.guestPhone} onChange={(event) => setForm({ ...form, guestPhone: event.target.value })} /></label>
+          <Field label="Guest" name="guestName" required value={form.guestName} onChange={(event) => setForm({ ...form, guestName: event.target.value })} />
+          <Field label="Email" name="guestEmail" required value={form.guestEmail} onChange={(event) => setForm({ ...form, guestEmail: event.target.value })} />
+          <Field label="Phone" name="guestPhone" value={form.guestPhone} onChange={(event) => setForm({ ...form, guestPhone: event.target.value })} />
           <label>Source
             <select value={form.source} onChange={(event) => setForm({ ...form, source: event.target.value })}>
               <option value="walk-in">Walk-in</option>
@@ -234,15 +216,15 @@ export function ReservationsPage() {
               {(rates.data?.plans || []).map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
             </select>
           </label>
-          <label>Check in<input type="date" required value={form.checkIn} onChange={(event) => setForm({ ...form, checkIn: event.target.value })} /></label>
-          <label>Check out<input type="date" required value={form.checkOut} onChange={(event) => setForm({ ...form, checkOut: event.target.value })} /></label>
-          <label>Adults<input type="number" min="1" value={form.adults} onChange={(event) => setForm({ ...form, adults: event.target.value })} /></label>
-          <label>Rooms<input type="number" min="1" max="5" value={form.rooms} onChange={(event) => setForm({ ...form, rooms: event.target.value })} /></label>
-          <div className="span-2"><button className="ha-btn" type="submit">Create reservation</button></div>
+          <Field label="Check in" type="date" required value={form.checkIn} onChange={(event) => setForm({ ...form, checkIn: event.target.value })} />
+          <Field label="Check out" type="date" required value={form.checkOut} onChange={(event) => setForm({ ...form, checkOut: event.target.value })} />
+          <Field label="Adults" type="number" name="adults" value={form.adults} onChange={(event) => setForm({ ...form, adults: event.target.value })} />
+          <Field label="Rooms" type="number" name="rooms" value={form.rooms} onChange={(event) => setForm({ ...form, rooms: event.target.value })} />
+          <div className="span-2"><Btn type="submit" label="Create reservation" /></div>
         </form>
-      </Card>
+      </FormModal>
       <Card title="All reservations">
-        <BookingList rows={bookings.data || []} onChanged={bookings.reload} />
+        <BookingList rows={bookings.data || []} onChanged={bookings.reload} onNew={() => { setForm(blankForm); setOpen(true) }} />
       </Card>
     </Page>
   )
@@ -254,8 +236,7 @@ export function GuestsPage() {
   const guests = useData(() => call(`/admin/guests?q=${encodeURIComponent(query)}`), [query])
   return (
     <Page title="Guests" lede="Profiles created from reservations and accounts.">
-      <input placeholder="Search name or email" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search guests" />
-      {guests.error && <p className="alert">{guests.error}</p>}
+      <Field label="Search guests" placeholder="Search name or email" value={query} onChange={(event) => setQuery(event.target.value)} />
       <Card title="Guest book">
         <Table
           rows={guests.data || []}
@@ -275,7 +256,8 @@ export function GuestsPage() {
 export function RoomTypesPage() {
   const { call } = useAdmin()
   const rooms = useData(() => call('/admin/room-types'), [])
-  const [form, setForm] = useState({ name: '', basePrice: '', capacityAdults: 2, capacityChildren: 0, bedConfig: '1 king', sizeSqm: 30, view: 'Ocean', category: 'Room', summary: '' })
+  const [form, setForm] = useState({ name: '', basePrice: '', capacityAdults: 2, capacityChildren: 0, bedConfig: '1 king', sizeSqm: 30, view: 'Ocean', category: 'Room', summary: '', imageUrl: '' })
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
 
   const create = async (event) => {
@@ -283,6 +265,8 @@ export function RoomTypesPage() {
     setError('')
     try {
       await call('/admin/room-types', { method: 'POST', body: { ...form, basePrice: Number(form.basePrice) } })
+      setForm((current) => ({ ...current, name: '', basePrice: '', summary: '', imageUrl: '' }))
+      setOpen(false)
       rooms.reload()
     } catch (err) {
       setError(err.message)
@@ -296,29 +280,30 @@ export function RoomTypesPage() {
 
   return (
     <Page title="Room types" lede="What guests can book. Physical rooms sit underneath.">
-      {error && <p className="alert">{error}</p>}
-      <Card title="Add a room type">
+      <FormModal open={open} title="New room type" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={create}>
-          <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-          <label>Nightly price<input required type="number" min="1" step="0.01" value={form.basePrice} onChange={(event) => setForm({ ...form, basePrice: event.target.value })} /></label>
-          <label>Adults<input type="number" min="1" value={form.capacityAdults} onChange={(event) => setForm({ ...form, capacityAdults: Number(event.target.value) })} /></label>
-          <label>Children<input type="number" min="0" value={form.capacityChildren} onChange={(event) => setForm({ ...form, capacityChildren: Number(event.target.value) })} /></label>
-          <label>Beds<input value={form.bedConfig} onChange={(event) => setForm({ ...form, bedConfig: event.target.value })} /></label>
-          <label>Size m²<input type="number" value={form.sizeSqm} onChange={(event) => setForm({ ...form, sizeSqm: Number(event.target.value) })} /></label>
-          <label className="span-2">Summary<input value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} /></label>
-          <div><button className="ha-btn" type="submit">Save room type</button></div>
+          <Field label="Name" name="name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <Field label="Nightly price" type="number" name="basePrice" required value={form.basePrice} onChange={(event) => setForm({ ...form, basePrice: event.target.value })} />
+          <Field label="Adults" type="number" name="capacityAdults" value={form.capacityAdults} onChange={(event) => setForm({ ...form, capacityAdults: Number(event.target.value) })} />
+          <Field label="Children" type="number" name="capacityChildren" value={form.capacityChildren} onChange={(event) => setForm({ ...form, capacityChildren: Number(event.target.value) })} />
+          <Field label="Beds" name="bedConfig" value={form.bedConfig} onChange={(event) => setForm({ ...form, bedConfig: event.target.value })} />
+          <Field label="Size m²" type="number" name="sizeSqm" value={form.sizeSqm} onChange={(event) => setForm({ ...form, sizeSqm: Number(event.target.value) })} />
+          <Field className="span-2" label="Summary" name="summary" value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} />
+          <ImageUpload value={form.imageUrl} onChange={(imageUrl) => setForm({ ...form, imageUrl })} />
+          <div><Btn type="submit" label="Save room type" /></div>
         </form>
-      </Card>
+      </FormModal>
       <Card title="Catalogue">
         <Table
           rows={rooms.data || []}
+          onNew={() => setOpen(true)}
           columns={[
             { key: 'name', label: 'Name' },
             { key: 'category', label: 'Category' },
             { key: 'occupancy', label: 'Occupancy', render: (row) => `${row.capacityAdults}+${row.capacityChildren}` },
             { key: 'price', label: 'From', render: (row) => money(row.basePrice, row.currency) },
             { key: 'active', label: 'Shown', render: (row) => (row.active ? 'Yes' : 'No') },
-            { key: 'toggle', label: '', render: (row) => <button className="ha-btn-line" type="button" onClick={() => toggle(row)}>{row.active ? 'Hide' : 'Show'}</button> },
+            { key: 'toggle', label: 'Action', render: (row) => <ActionMenu items={[{ label: row.active ? 'Hide' : 'Show', onClick: () => toggle(row) }]} /> },
           ]}
         />
       </Card>
@@ -331,6 +316,7 @@ export function RoomsPage() {
   const rooms = useData(() => call('/admin/rooms'), [])
   const types = useData(() => call('/admin/room-types'), [])
   const [form, setForm] = useState({ roomNumber: '', roomTypeId: '', floor: '', wing: 'Main' })
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const statuses = ['READY', 'DIRTY', 'CLEANING', 'INSPECTING', 'OUT_OF_SERVICE']
 
@@ -339,6 +325,8 @@ export function RoomsPage() {
     setError('')
     try {
       await call('/admin/rooms', { method: 'POST', body: { ...form, roomTypeId: Number(form.roomTypeId) } })
+      setForm({ roomNumber: '', roomTypeId: '', floor: '', wing: 'Main' })
+      setOpen(false)
       rooms.reload()
     } catch (err) {
       setError(err.message)
@@ -352,24 +340,24 @@ export function RoomsPage() {
 
   return (
     <Page title="Physical rooms" lede="Housekeeping status is separate from who is sleeping in the room.">
-      {error && <p className="alert">{error}</p>}
-      <Card title="Add a room">
+      <FormModal open={open} title="New room" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={create}>
-          <label>Number<input required value={form.roomNumber} onChange={(event) => setForm({ ...form, roomNumber: event.target.value })} /></label>
+          <Field label="Number" name="roomNumber" required value={form.roomNumber} onChange={(event) => setForm({ ...form, roomNumber: event.target.value })} />
           <label>Type
             <select required value={form.roomTypeId} onChange={(event) => setForm({ ...form, roomTypeId: event.target.value })}>
               <option value="">Choose</option>
               {(types.data || []).map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
             </select>
           </label>
-          <label>Floor<input value={form.floor} onChange={(event) => setForm({ ...form, floor: event.target.value })} /></label>
-          <label>Wing<input value={form.wing} onChange={(event) => setForm({ ...form, wing: event.target.value })} /></label>
-          <div><button className="ha-btn" type="submit">Add room</button></div>
+          <Field label="Floor" name="floor" value={form.floor} onChange={(event) => setForm({ ...form, floor: event.target.value })} />
+          <Field label="Wing" name="wing" value={form.wing} onChange={(event) => setForm({ ...form, wing: event.target.value })} />
+          <div><Btn type="submit" label="Add room" /></div>
         </form>
-      </Card>
+      </FormModal>
       <Card title="Inventory of keys">
         <Table
           rows={rooms.data || []}
+          onNew={() => setOpen(true)}
           columns={[
             { key: 'room_number', label: 'Room' },
             { key: 'room_type_name', label: 'Type' },
@@ -395,6 +383,7 @@ export function InventoryPage() {
   const { call } = useAdmin()
   const inventory = useData(() => call('/admin/inventory'), [])
   const [form, setForm] = useState({ roomTypeId: '', startDate: '', endDate: '', quantity: 1, reason: '' })
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
 
   const block = async (event) => {
@@ -402,6 +391,7 @@ export function InventoryPage() {
     setError('')
     try {
       await call('/admin/inventory/blocks', { method: 'POST', body: { ...form, roomTypeId: Number(form.roomTypeId), quantity: Number(form.quantity) } })
+      setOpen(false)
       inventory.reload()
     } catch (err) {
       setError(err.message)
@@ -411,8 +401,8 @@ export function InventoryPage() {
   const dates = inventory.data?.dates || []
   return (
     <Page title="Inventory" lede="Available rooms by night, after bookings, holds, and blocks.">
-      {error && <p className="alert">{error}</p>}
-      <Card title="Block dates">
+      <div className="admin-head-actions"><Btn label="New block" onClick={() => setOpen(true)} /></div>
+      <FormModal open={open} title="Block dates" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={block}>
           <label>Room type
             <select required value={form.roomTypeId} onChange={(event) => setForm({ ...form, roomTypeId: event.target.value })}>
@@ -420,13 +410,13 @@ export function InventoryPage() {
               {(inventory.data?.roomTypes || []).map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
             </select>
           </label>
-          <label>Quantity<input type="number" min="1" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} /></label>
-          <label>From<input type="date" required value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} /></label>
-          <label>Until<input type="date" required value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} /></label>
-          <label className="span-2">Reason<input required value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} /></label>
-          <div><button className="ha-btn" type="submit">Block</button></div>
+          <Field label="Quantity" type="number" name="quantity" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} />
+          <Field label="From" type="date" required value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+          <Field label="Until" type="date" required value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
+          <Field className="span-2" label="Reason" name="reason" required value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} />
+          <div><Btn type="submit" label="Block" /></div>
         </form>
-      </Card>
+      </FormModal>
       <Card title="Next 14 nights">
         <div className="calendar">
           {(inventory.data?.roomTypes || []).map((type) => (
@@ -450,6 +440,7 @@ export function RatesPage() {
   const { call } = useAdmin()
   const rates = useData(() => call('/admin/rates'), [])
   const [form, setForm] = useState({ code: '', name: '', discountType: 'percent', discountValue: 10, terms: '' })
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
 
   const create = async (event) => {
@@ -457,6 +448,8 @@ export function RatesPage() {
     setError('')
     try {
       await call('/admin/promotions', { method: 'POST', body: { ...form, discountValue: Number(form.discountValue) } })
+      setForm({ code: '', name: '', discountType: 'percent', discountValue: 10, terms: '' })
+      setOpen(false)
       rates.reload()
     } catch (err) {
       setError(err.message)
@@ -465,7 +458,6 @@ export function RatesPage() {
 
   return (
     <Page title="Rate plans" lede="Prices for each date are stored when the calendar is seeded. Promotions change the quote on the server.">
-      {error && <p className="alert">{error}</p>}
       <Card title="Plans">
         <Table
           rows={rates.data?.plans || []}
@@ -477,10 +469,10 @@ export function RatesPage() {
           ]}
         />
       </Card>
-      <Card title="Promotion codes">
+      <FormModal open={open} title="New promotion" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={create}>
-          <label>Code<input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })} /></label>
-          <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
+          <Field label="Code" name="code" required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })} />
+          <Field label="Name" name="promoName" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           <label>Type
             <select value={form.discountType} onChange={(event) => setForm({ ...form, discountType: event.target.value })}>
               <option value="percent">Percent</option>
@@ -488,12 +480,15 @@ export function RatesPage() {
               <option value="free_night">Free night after N nights</option>
             </select>
           </label>
-          <label>Value<input type="number" value={form.discountValue} onChange={(event) => setForm({ ...form, discountValue: event.target.value })} /></label>
-          <label className="span-2">Terms<input value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} /></label>
-          <div><button className="ha-btn" type="submit">Add code</button></div>
+          <Field label="Value" type="number" name="discountValue" value={form.discountValue} onChange={(event) => setForm({ ...form, discountValue: event.target.value })} />
+          <Field className="span-2" label="Terms" name="terms" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} />
+          <div><Btn type="submit" label="Add code" /></div>
         </form>
+      </FormModal>
+      <Card title="Promotion codes">
         <Table
           rows={rates.data?.promotions || []}
+          onNew={() => setOpen(true)}
           columns={[
             { key: 'code', label: 'Code' },
             { key: 'name', label: 'Name' },
@@ -536,7 +531,6 @@ export function PaymentsPage() {
 
   return (
     <Page title="Payments" lede="Pay-at-hotel balances can be marked paid at the desk. Card numbers are never stored.">
-      {error && <p className="alert">{error}</p>}
       <Card title="Ledger">
         <Table
           rows={payments.data || []}
@@ -550,10 +544,10 @@ export function PaymentsPage() {
               key: 'actions',
               label: '',
               render: (row) => (
-                <div className="row-actions">
-                  {row.status === 'UNPAID' && <button className="ha-btn" type="button" onClick={() => mark(row)}>Mark paid</button>}
-                  {['PAID', 'PARTIALLY_REFUNDED'].includes(row.status) && <button className="ha-btn-line" type="button" onClick={() => refund(row)}>Refund</button>}
-                </div>
+                <ActionMenu items={[
+                  row.status === 'UNPAID' && { label: 'Mark paid', onClick: () => mark(row) },
+                  ['PAID', 'PARTIALLY_REFUNDED'].includes(row.status) && { label: 'Refund', onClick: () => refund(row) },
+                ]} />
               ),
             },
           ]}
@@ -571,10 +565,9 @@ export function ReportsPage() {
   return (
     <Page title="Reports" lede="Occupancy uses stay nights. Revenue is room revenue after discounts. ADR is room revenue divided by rooms sold. RevPAR divides that revenue by available room nights.">
       <div className="admin-head-actions">
-        <label>From<input type="date" value={range.from} onChange={(event) => setRange({ ...range, from: event.target.value })} /></label>
-        <label>To<input type="date" value={range.to} onChange={(event) => setRange({ ...range, to: event.target.value })} /></label>
+        <Field label="From" type="date" value={range.from} onChange={(event) => setRange({ ...range, from: event.target.value })} />
+        <Field label="To" type="date" value={range.to} onChange={(event) => setRange({ ...range, to: event.target.value })} />
       </div>
-      {report.error && <p className="alert">{report.error}</p>}
       {data && (
         <Flex row>
           {[
@@ -617,7 +610,6 @@ export function HousekeepingPage() {
   }
   return (
     <Page title="Housekeeping" lede="Dirty, cleaning, inspecting, then ready. The room status moves with the task.">
-      {error && <p className="alert">{error}</p>}
       <Card title="Queue">
         <Table
           rows={tasks.data || []}
@@ -626,7 +618,7 @@ export function HousekeepingPage() {
             { key: 'status', label: 'Status', render: (row) => <Badge value={row.status} /> },
             { key: 'priority', label: 'Priority' },
             { key: 'notes', label: 'Notes' },
-            { key: 'go', label: '', render: (row) => row.status !== 'READY' && <button className="ha-btn" type="button" onClick={() => advance(row)}>Advance</button> },
+            { key: 'go', label: 'Action', render: (row) => row.status !== 'READY' && <ActionMenu items={[{ label: 'Advance', onClick: () => advance(row) }]} /> },
           ]}
         />
       </Card>
@@ -639,6 +631,7 @@ export function MaintenancePage() {
   const tickets = useData(() => call('/admin/maintenance'), [])
   const rooms = useData(() => call('/admin/rooms'), [])
   const [form, setForm] = useState({ roomId: '', issue: '', severity: 'MEDIUM', blockRoom: true })
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
 
   const create = async (event) => {
@@ -646,6 +639,8 @@ export function MaintenancePage() {
     setError('')
     try {
       await call('/admin/maintenance', { method: 'POST', body: { ...form, roomId: Number(form.roomId), blockRoom: Boolean(form.blockRoom) } })
+      setForm({ roomId: '', issue: '', severity: 'MEDIUM', blockRoom: true })
+      setOpen(false)
       tickets.reload()
       rooms.reload()
     } catch (err) {
@@ -660,8 +655,7 @@ export function MaintenancePage() {
 
   return (
     <Page title="Maintenance" lede="A blocked room leaves the sellable count until the ticket is resolved.">
-      {error && <p className="alert">{error}</p>}
-      <Card title="Open a ticket">
+      <FormModal open={open} title="New ticket" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={create}>
           <label>Room
             <select required value={form.roomId} onChange={(event) => setForm({ ...form, roomId: event.target.value })}>
@@ -674,20 +668,21 @@ export function MaintenancePage() {
               {['LOW', 'MEDIUM', 'HIGH'].map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
-          <label className="span-2">Issue<input required value={form.issue} onChange={(event) => setForm({ ...form, issue: event.target.value })} /></label>
-          <label><input type="checkbox" checked={form.blockRoom} onChange={(event) => setForm({ ...form, blockRoom: event.target.checked })} /> Take the room out of service</label>
-          <div><button className="ha-btn" type="submit">Open ticket</button></div>
+          <Field className="span-2" label="Issue" name="issue" required value={form.issue} onChange={(event) => setForm({ ...form, issue: event.target.value })} />
+          <Field type="checkbox" label="Take the room out of service" checked={form.blockRoom} onChange={(event) => setForm({ ...form, blockRoom: event.target.checked })} />
+          <div><Btn type="submit" label="Open ticket" /></div>
         </form>
-      </Card>
+      </FormModal>
       <Card title="Tickets">
         <Table
           rows={tickets.data || []}
+          onNew={() => setOpen(true)}
           columns={[
             { key: 'room_number', label: 'Room' },
             { key: 'issue', label: 'Issue' },
             { key: 'severity', label: 'Severity' },
             { key: 'status', label: 'Status', render: (row) => <Badge value={row.status} /> },
-            { key: 'go', label: '', render: (row) => row.status !== 'RESOLVED' && <button className="ha-btn" type="button" onClick={() => resolve(row)}>Resolve</button> },
+            { key: 'go', label: 'Action', render: (row) => row.status !== 'RESOLVED' && <ActionMenu items={[{ label: 'Resolve', onClick: () => resolve(row) }]} /> },
           ]}
         />
       </Card>
@@ -710,7 +705,6 @@ export function ServicesPage() {
   }
   return (
     <Page title="Services" lede="Guest requests for cars, cots, and other arranged services.">
-      {error && <p className="alert">{error}</p>}
       <Card title="Requests">
         <Table
           rows={services.data?.requests || []}
@@ -742,7 +736,8 @@ export function ContentPage() {
   const [slug, setSlug] = useState('about')
   const [draft, setDraft] = useState({ title: '', body: '' })
   const [faq, setFaq] = useState({ category: 'General', question: '', answer: '' })
-  const [message, setMessage] = useState('')
+  const [pageOpen, setPageOpen] = useState(false)
+  const [faqOpen, setFaqOpen] = useState(false)
 
   useEffect(() => {
     const page = content.data?.pages?.find((item) => item.slug === slug)
@@ -751,40 +746,93 @@ export function ContentPage() {
 
   const save = async (event) => {
     event.preventDefault()
-    const result = await call(`/admin/pages/${slug}`, { method: 'PATCH', body: draft })
-    setMessage(`${result.data.title} published.`)
-    content.reload()
+    try {
+      const result = await call(`/admin/pages/${slug}`, { method: 'PATCH', body: draft, notify: 'error' })
+      toast.success(`${result.data.title} published.`)
+      setPageOpen(false)
+      content.reload()
+    } catch {
+      // The request toast already reported the error.
+    }
   }
 
   const addFaq = async (event) => {
     event.preventDefault()
-    await call('/admin/faqs', { method: 'POST', body: faq })
-    setFaq({ category: 'General', question: '', answer: '' })
-    content.reload()
+    try {
+      if (faq.id) await call(`/admin/faqs/${faq.id}`, { method: 'PATCH', body: faq })
+      else await call('/admin/faqs', { method: 'POST', body: faq })
+      setFaq({ category: 'General', question: '', answer: '' })
+      setFaqOpen(false)
+      content.reload()
+    } catch {
+      // The request toast already reported the error.
+    }
   }
 
   return (
     <Page title="Website content" lede="Published copy is what guests read. Save writes it live for this hotel.">
-      {message && <p className="ok-note">{message}</p>}
-      <Card title="Page">
+      <FormModal open={pageOpen} title="Update page" onClose={() => setPageOpen(false)}>
         <form className="ha-form" onSubmit={save}>
-          <label>Page
-            <select value={slug} onChange={(event) => setSlug(event.target.value)}>
-              {(content.data?.pages || []).map((page) => <option key={page.slug} value={page.slug}>{page.slug}</option>)}
-            </select>
-          </label>
-          <label>Title<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
-          <label className="span-2">Body<textarea value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} /></label>
-          <div><button className="ha-btn" type="submit">Publish</button></div>
+          <Field label="Page" name="pageSlug" value={slug} disabled />
+          <Field label="Title" name="title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+          <Field className="span-2" label="Body" type="textarea" name="body" value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} />
+          <div><Btn type="submit" label="Publish" /></div>
         </form>
+      </FormModal>
+      <Card title="Pages">
+        <Table
+          rows={content.data?.pages || []}
+          columns={[
+            { key: 'slug', label: 'Page' },
+            { key: 'title', label: 'Title' },
+            {
+              key: 'actions',
+              label: 'Action',
+              render: (row) => (
+                <ActionMenu items={[{
+                  label: 'Edit',
+                  onClick: () => {
+                    setSlug(row.slug)
+                    setDraft({ title: row.title, body: row.body })
+                    setPageOpen(true)
+                  },
+                }]} />
+              ),
+            },
+          ]}
+        />
       </Card>
-      <Card title="Add an FAQ">
+      <FormModal open={faqOpen} title={faq.id ? 'Update FAQ' : 'New FAQ'} onClose={() => setFaqOpen(false)}>
         <form className="ha-form" onSubmit={addFaq}>
-          <label>Category<input value={faq.category} onChange={(event) => setFaq({ ...faq, category: event.target.value })} /></label>
-          <label>Question<input required value={faq.question} onChange={(event) => setFaq({ ...faq, question: event.target.value })} /></label>
-          <label className="span-2">Answer<textarea required value={faq.answer} onChange={(event) => setFaq({ ...faq, answer: event.target.value })} /></label>
-          <div><button className="ha-btn" type="submit">Add FAQ</button></div>
+          <Field label="Category" name="category" value={faq.category} onChange={(event) => setFaq({ ...faq, category: event.target.value })} />
+          <Field label="Question" name="question" required value={faq.question} onChange={(event) => setFaq({ ...faq, question: event.target.value })} />
+          <Field className="span-2" label="Answer" type="textarea" name="answer" required value={faq.answer} onChange={(event) => setFaq({ ...faq, answer: event.target.value })} />
+          <div><Btn type="submit" label={faq.id ? 'Save FAQ' : 'Add FAQ'} /></div>
         </form>
+      </FormModal>
+      <Card title="FAQs">
+        <Table
+          rows={content.data?.faqs || []}
+          onNew={() => { setFaq({ category: 'General', question: '', answer: '' }); setFaqOpen(true) }}
+          columns={[
+            { key: 'category', label: 'Category' },
+            { key: 'question', label: 'Question' },
+            { key: 'answer', label: 'Answer' },
+            {
+              key: 'actions',
+              label: 'Action',
+              render: (row) => (
+                <ActionMenu items={[{
+                  label: 'Edit',
+                  onClick: () => {
+                    setFaq({ id: row.id, category: row.category, question: row.question, answer: row.answer })
+                    setFaqOpen(true)
+                  },
+                }]} />
+              ),
+            },
+          ]}
+        />
       </Card>
     </Page>
   )
@@ -793,15 +841,37 @@ export function ContentPage() {
 export function ReviewsPage() {
   const { call } = useAdmin()
   const reviews = useData(() => call('/admin/reviews'), [])
+  return (
+    <Page title="Reviews" lede="Guest reviews. Approval happens on the Review Approval page.">
+      <Card title="All reviews">
+        <Table
+          rows={reviews.data || []}
+          columns={[
+            { key: 'guest_name', label: 'Guest' },
+            { key: 'rating', label: 'Rating' },
+            { key: 'title', label: 'Title' },
+            { key: 'comment', label: 'Comment' },
+            { key: 'moderation_status', label: 'Status', render: (row) => <Badge value={row.moderation_status} /> },
+          ]}
+        />
+      </Card>
+    </Page>
+  )
+}
+
+export function ReviewApprovalPage() {
+  const { call } = useAdmin()
+  const reviews = useData(() => call('/admin/reviews'), [])
+  const waiting = (reviews.data || []).filter((row) => !['APPROVED', 'REJECTED'].includes(row.moderation_status))
   const moderate = async (row, moderationStatus) => {
     await call(`/admin/reviews/${row.id}`, { method: 'PATCH', body: { moderationStatus } })
     reviews.reload()
   }
   return (
-    <Page title="Reviews" lede="Approve a review before it appears on the public site.">
-      <Card title="Moderation">
+    <Page title="Review approval" lede="Approve a review before it appears on the public site.">
+      <Card title="Waiting for a decision">
         <Table
-          rows={reviews.data || []}
+          rows={waiting}
           columns={[
             { key: 'guest_name', label: 'Guest' },
             { key: 'rating', label: 'Rating' },
@@ -809,12 +879,12 @@ export function ReviewsPage() {
             { key: 'moderation_status', label: 'Status', render: (row) => <Badge value={row.moderation_status} /> },
             {
               key: 'go',
-              label: '',
+              label: 'Action',
               render: (row) => (
-                <div className="row-actions">
-                  <button className="ha-btn" type="button" onClick={() => moderate(row, 'APPROVED')}>Approve</button>
-                  <button className="ha-btn-line" type="button" onClick={() => moderate(row, 'REJECTED')}>Reject</button>
-                </div>
+                <ActionMenu items={[
+                  { label: 'Approve', onClick: () => moderate(row, 'APPROVED') },
+                  { label: 'Reject', onClick: () => moderate(row, 'REJECTED') },
+                ]} />
               ),
             },
           ]}
@@ -842,7 +912,7 @@ export function MessagesPage() {
             { key: 'topic', label: 'Topic' },
             { key: 'message', label: 'Message' },
             { key: 'status', label: 'Status', render: (row) => <Badge value={row.status} /> },
-            { key: 'go', label: '', render: (row) => row.status === 'NEW' && <button className="ha-btn-line" type="button" onClick={() => mark(row)}>Mark read</button> },
+            { key: 'go', label: 'Action', render: (row) => row.status === 'NEW' && <ActionMenu items={[{ label: 'Mark read', onClick: () => mark(row) }]} /> },
           ]}
         />
       </Card>
@@ -855,6 +925,7 @@ export function UsersPage() {
   const users = useData(() => call('/admin/users'), [])
   const roles = useData(() => call('/admin/roles'), [])
   const [form, setForm] = useState({ name: '', username: '', phone: '', email: '', password: '', role: 'Front Desk' })
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
 
   const create = async (event) => {
@@ -862,6 +933,8 @@ export function UsersPage() {
     setError('')
     try {
       await call('/admin/users', { method: 'POST', body: form })
+      setForm({ name: '', username: '', phone: '', email: '', password: '', role: 'Front Desk' })
+      setOpen(false)
       users.reload()
     } catch (err) {
       setError(err.message)
@@ -875,25 +948,25 @@ export function UsersPage() {
 
   return (
     <Page title="Users" lede="Staff accounts and the role that gates each API.">
-      {error && <p className="alert">{error}</p>}
-      <Card title="New staff account">
+      <FormModal open={open} title="New staff account" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={create}>
-          <label>Full name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-          <label>Username<input required minLength={3} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
-          <label>Phone<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
-          <label>Email<input type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-          <label>Password<input type="password" required minLength={8} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
+          <Field label="Full name" name="fullName" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <Field label="Username" name="username" required minLength={3} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} />
+          <Field label="Phone" name="phone" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+          <Field label="Email" name="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+          <Field label="Password" type="password" name="password" required minLength={8} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
           <label>Role
             <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
               {(roles.data || []).map((role) => <option key={role.id}>{role.name}</option>)}
             </select>
           </label>
-          <div><button className="ha-btn" type="submit">Create account</button></div>
+          <div><Btn type="submit" label="Create account" /></div>
         </form>
-      </Card>
+      </FormModal>
       <Card title="Team">
         <Table
           rows={users.data || []}
+          onNew={() => setOpen(true)}
           columns={[
             { key: 'name', label: 'Full name' },
             { key: 'username', label: 'Username' },
@@ -901,7 +974,7 @@ export function UsersPage() {
             { key: 'email', label: 'Email' },
             { key: 'roles', label: 'Role', render: (row) => row.roles.join(', ') },
             { key: 'status', label: 'Status', render: (row) => <Badge value={row.status} /> },
-            { key: 'go', label: '', render: (row) => <button className="ha-btn-line" type="button" onClick={() => toggle(row)}>{row.status === 'ACTIVE' ? 'Disable' : 'Enable'}</button> },
+            { key: 'go', label: 'Action', render: (row) => <ActionMenu items={[{ label: row.status === 'ACTIVE' ? 'Disable' : 'Enable', onClick: () => toggle(row) }]} /> },
           ]}
         />
       </Card>
@@ -913,40 +986,59 @@ export function SettingsPage() {
   const { call } = useAdmin()
   const settings = useData(() => call('/admin/settings'), [])
   const [draft, setDraft] = useState(null)
-  const [message, setMessage] = useState('')
+  const [open, setOpen] = useState(false)
   useEffect(() => {
     if (settings.data) setDraft(settings.data)
   }, [settings.data])
-  if (!draft) return <Page title="Settings">{settings.error && <p className="alert">{settings.error}</p>}</Page>
+  if (!draft) return <Page title="Settings" />
   const set = (key) => (event) => setDraft({ ...draft, [key]: event.target.value })
   const save = async (event) => {
     event.preventDefault()
-    const result = await call('/admin/settings', {
-      method: 'PATCH',
-      body: {
-        ...draft,
-        taxPercent: Number(draft.taxPercent),
-        serviceFeePercent: Number(draft.serviceFeePercent),
-      },
-    })
-    setMessage('Settings saved. New quotes use these tax and service rates.')
-    setDraft(result.data)
+    try {
+      const result = await call('/admin/settings', {
+        method: 'PATCH',
+        notify: 'error',
+        body: {
+          ...draft,
+          taxPercent: Number(draft.taxPercent),
+          serviceFeePercent: Number(draft.serviceFeePercent),
+        },
+      })
+      toast.success('Settings saved. New quotes use these tax and service rates.')
+      setDraft(result.data)
+      setOpen(false)
+    } catch {
+      // The request toast already reported the error.
+    }
   }
   return (
     <Page title="Settings" lede={`${draft.name} · ${draft.timezone} · ${draft.currency}`}>
-      {message && <p className="ok-note">{message}</p>}
-      <Card title="Property">
+      <FormModal open={open} title="Update property" onClose={() => setOpen(false)}>
         <form className="ha-form" onSubmit={save}>
-          <label>Phone<input value={draft.phone} onChange={set('phone')} /></label>
-          <label>Email<input value={draft.email} onChange={set('email')} /></label>
-          <label>Check-in<input value={draft.checkInTime} onChange={set('checkInTime')} /></label>
-          <label>Check-out<input value={draft.checkOutTime} onChange={set('checkOutTime')} /></label>
-          <label>Tax %<input type="number" step="0.01" value={draft.taxPercent} onChange={set('taxPercent')} /></label>
-          <label>Service %<input type="number" step="0.01" value={draft.serviceFeePercent} onChange={set('serviceFeePercent')} /></label>
-          <label className="span-2">Tagline<input value={draft.tagline} onChange={set('tagline')} /></label>
-          <label className="span-2">Description<textarea value={draft.description} onChange={set('description')} /></label>
-          <div><button className="ha-btn" type="submit">Save settings</button></div>
+          <Field label="Phone" name="settingsPhone" value={draft.phone} onChange={set('phone')} />
+          <Field label="Email" name="settingsEmail" value={draft.email} onChange={set('email')} />
+          <Field label="Check-in" name="checkInTime" value={draft.checkInTime} onChange={set('checkInTime')} />
+          <Field label="Check-out" name="checkOutTime" value={draft.checkOutTime} onChange={set('checkOutTime')} />
+          <Field label="Tax %" type="number" name="taxPercent" value={draft.taxPercent} onChange={set('taxPercent')} />
+          <Field label="Service %" type="number" name="serviceFeePercent" value={draft.serviceFeePercent} onChange={set('serviceFeePercent')} />
+          <Field className="span-2" label="Tagline" name="tagline" value={draft.tagline} onChange={set('tagline')} />
+          <Field className="span-2" label="Description" type="textarea" name="description" value={draft.description} onChange={set('description')} />
+          <div><Btn type="submit" label="Save settings" /></div>
         </form>
+      </FormModal>
+      <Card title="Property">
+        <Table
+          rows={[{ id: 'property', ...draft }]}
+          columns={[
+            { key: 'phone', label: 'Phone' },
+            { key: 'email', label: 'Email' },
+            { key: 'checkInTime', label: 'Check-in' },
+            { key: 'checkOutTime', label: 'Check-out' },
+            { key: 'taxPercent', label: 'Tax %' },
+            { key: 'serviceFeePercent', label: 'Service %' },
+            { key: 'actions', label: 'Action', render: () => <ActionMenu items={[{ label: 'Update', onClick: () => setOpen(true) }]} /> },
+          ]}
+        />
       </Card>
     </Page>
   )
@@ -957,7 +1049,6 @@ export function AuditPage() {
   const logs = useData(() => call('/admin/audit-logs'), [])
   return (
     <Page title="Audit log" lede="Staff actions on bookings, rooms, payments, and settings.">
-      {logs.error && <p className="alert">{logs.error}</p>}
       <Card title="Recent events">
         <Table
           rows={logs.data || []}

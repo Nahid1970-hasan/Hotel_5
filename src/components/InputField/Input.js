@@ -78,6 +78,7 @@ export const InputField = ({
     readOnlyInput,
     dateWriteAble,
     maxlength,
+    minLength,
     onClose,
     accept,
     rows,
@@ -570,6 +571,8 @@ export const InputField = ({
                             <InputText
                                 id={id}
                                 name={name}
+                                placeholder={placeholder}
+                                minLength={minLength}
                                 className={`rounded-md ${required && !value?.length && "border-red-500"} w-${width}`}
                                 disabled={disabled}
                                 value={value == null ? "" : value}
@@ -629,7 +632,7 @@ export const InputField = ({
                     )}
                     {!inputGroup && type === "number" && (
                         <>
-                            <InputText id={id} name={name} className={`rounded-md ${required && !value?.length && "p-invalid"} w-${width}`} disabled={disabled} value={value == null ? "" : value} onChange={onChange} required={required} onBlur={onBlur} onClick={onClick} autoComplete="on" />
+                            <InputText id={id} name={name} placeholder={placeholder} minLength={minLength} className={`rounded-md ${required && !value?.length && "p-invalid"} w-${width}`} disabled={disabled} value={value == null ? "" : value} onChange={onChange} required={required} onBlur={onBlur} onClick={onClick} autoComplete={autoComplete || "on"} />
                             <label className="text-[#A2B3C4]" htmlFor={labelFor}>
                                 {label}
                             </label>
@@ -814,6 +817,7 @@ export const InputField = ({
                                 cols={cols ?? "30"}
                                 id={id}
                                 name={name}
+                                placeholder={placeholder}
                                 className={`rounded-md ${required && !value && "border-red-500"} w-${width}`}
                                 disabled={disabled}
                                 value={value == null ? "" : value}
@@ -872,7 +876,7 @@ export const InputField = ({
                                 value={value}
                                 onChange={(e) => {
                                     const userValue = e?.value || e.target?.value;
-                                    const localTime = Number(process.env.REACT_APP_LOCAL_TIME);
+                                    const localTime = Number(process.env.REACT_APP_LOCAL_TIME) || 0;
 
                                     if (selectionMode === "range") {
                                         return onChange({

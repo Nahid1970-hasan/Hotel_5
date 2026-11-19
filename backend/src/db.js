@@ -102,6 +102,7 @@ async function init(seed) {
     persist()
   }
   ensureUsernames()
+  ensurePublicPortal()
   db.run('PRAGMA foreign_keys = ON')
 }
 
@@ -153,6 +154,67 @@ function ensureUsernames() {
       run(`INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`, [amira.id, frontDesk.id])
       changed = true
     }
+  }
+  if (changed) persist()
+}
+
+function ensurePublicPortal() {
+  const exists = get(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'public_portal_items'`)
+  let changed = false
+  if (!exists) {
+    run(`CREATE TABLE public_portal_items (
+      id INTEGER PRIMARY KEY,
+      section TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT,
+      image_url TEXT,
+      details TEXT,
+      status TEXT NOT NULL DEFAULT 'DRAFT',
+      rejection_note TEXT,
+      created_by INTEGER,
+      submitted_at TEXT,
+      reviewed_by INTEGER,
+      reviewed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    run('CREATE INDEX IF NOT EXISTS public_portal_items_section ON public_portal_items(section, status)')
+    changed = true
+  }
+  const count = get('SELECT COUNT(*) AS total FROM public_portal_items').total
+  if (count === 0) {
+    const add = (section, title, summary, imageUrl, details) => {
+      insert(
+        `INSERT INTO public_portal_items (section, title, summary, image_url, details, status, reviewed_at)
+         VALUES (?, ?, ?, ?, ?, 'APPROVED', datetime('now'))`,
+        [section, title || 'Untitled', summary || '', imageUrl || '', JSON.stringify(details || {})],
+      )
+      changed = true
+    }
+    all('SELECT * FROM dining_venues').forEach((row) => add('dining', row.name, row.description, row.image_url, {
+      cuisine: row.cuisine, hours: row.hours, dressCode: row.dress_code, dietaryNotes: row.dietary_notes,
+    }))
+    all('SELECT * FROM facilities').forEach((row) => add('facilities', row.name, row.description, row.image_url, {
+      hours: row.hours, bookingNote: row.booking_note,
+    }))
+    all('SELECT * FROM experiences').forEach((row) => add('experiences', row.name, row.description, row.image_url, {
+      duration: row.duration,
+      inclusions: row.inclusions,
+      exclusions: row.exclusions,
+      schedule: row.schedule,
+      capacity: row.capacity,
+      price: Math.round(Number(row.price_cents) || 0) / 100,
+      currency: row.currency || 'USD',
+    }))
+    all('SELECT * FROM offers').forEach((row) => add('offers', row.title, row.summary, row.image_url, {
+      slug: row.slug, discountLabel: row.discount_label, terms: row.terms, validFrom: row.valid_from, validTo: row.valid_to,
+    }))
+    all('SELECT * FROM gallery_images').forEach((row) => add('gallery', row.alt_text || row.category, row.alt_text, row.image_url, {
+      category: row.category, altText: row.alt_text,
+    }))
+    all('SELECT * FROM attractions').forEach((row) => add('destination', row.name, row.description, row.image_url, {
+      category: row.category, travelTime: row.travel_time,
+    }))
   }
   if (changed) persist()
 }

@@ -109,7 +109,7 @@ sass public/assets:public/assets --no-source-map
 `}
                     </AppCodeHighlight>
 
-                    <h4>Menu</h4>
+                    {/* <h4>Menu</h4> */}
                     <p>
                         Menu is a separate component defined in <i>AppMenu.js</i> file based on PrimeReact MenuModel API. In order to define the menuitems, navigate to data section of <i>App.js</i> file and define your own model as a nested structure using the menu property. Here is the menu
                         component from the demo application. Notice that menu object is bound to the model property of AppMenu component as shown above.

@@ -4,6 +4,10 @@ import Footer from '../../components/Navbar&Footer/Footer'
 import Navbar from '../../components/Navbar&Footer/Navbar'
 import SideBar from '../../components/Navbar&Footer/SideBar'
 import { api, setToken, token } from '../api'
+import { Btn, Field } from './ui'
+import 'primereact/resources/themes/lara-light-blue/theme.css'
+import 'primereact/resources/primereact.min.css'
+import 'primeicons/primeicons.css'
 import '../../components/Navbar&Footer/layout.css'
 import '../../style/hotel-admin.css'
 
@@ -93,7 +97,6 @@ export function AdminShell() {
 export function AdminLogin() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
 
   useEffect(() => {
     if (token('staff')) navigate('/admin/front-office/dashboard', { replace: true })
@@ -101,13 +104,12 @@ export function AdminLogin() {
 
   const submit = async (event) => {
     event.preventDefault()
-    setError('')
     try {
       const result = await api('/auth/login', { method: 'POST', body: { ...form, portal: 'staff' } })
       setToken('staff', result.data.token)
       navigate('/admin/front-office/dashboard')
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
@@ -118,13 +120,12 @@ export function AdminLogin() {
         <h1>Staff entrance</h1>
         <p>Reservations, rooms, and the house books.</p>
         <form onSubmit={submit}>
-          {error && <p className="alert">{error}</p>}
-          <label>Email or username<input type="text" required autoComplete="username" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-          <label>Password<input type="password" required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
-          <button className="ha-btn" type="submit">Sign in</button>
+          <Field label="Email or username" name="email" required autoComplete="username" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+          <Field label="Password" type="password" name="password" required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+          <Btn type="submit" label="Sign in" />
         </form>
         <div className="demo">
-          <p>Super admin: hasan@gmail.com / hasan1970</p>
+          <p>Super admin: hasan@gmail.com / Hasan@1970</p>
           <p>Front desk: amira@gmail.com / Horizon#2026</p>
           <p>Front desk: karim.hossain@grandhorizon.hotel / Desk#2026</p>
         </div>

@@ -442,6 +442,27 @@ CREATE TABLE notifications (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE public_portal_items (
+  id INTEGER PRIMARY KEY,
+  section TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT,
+  image_url TEXT,
+  details TEXT,
+  status TEXT NOT NULL DEFAULT 'DRAFT',
+  rejection_note TEXT,
+  created_by INTEGER,
+  submitted_at TEXT,
+  reviewed_by INTEGER,
+  reviewed_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (created_by) REFERENCES users(id),
+  FOREIGN KEY (reviewed_by) REFERENCES users(id)
+);
+
+CREATE INDEX public_portal_items_section ON public_portal_items(section, status);
+
 CREATE TABLE audit_logs (
   id INTEGER PRIMARY KEY,
   actor_user_id INTEGER,

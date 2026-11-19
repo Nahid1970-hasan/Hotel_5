@@ -5,10 +5,18 @@ import { DataTable } from "primereact/datatable";
 import { SplitButton } from "primereact/splitbutton";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CSVLink } from "react-csv";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { CommonButton } from "../Buttons/Buttons";
 import { OverlayPanel } from "primereact/overlaypanel";
+
+function useHistory() {
+    const navigate = useNavigate();
+    return {
+        push: (path) => navigate(path),
+        goBack: () => navigate(-1),
+    };
+}
 
 /** Parse comma / semicolon / newline / tab / space lists. Dedupes so 1000+ pasted values stay fast. */
 const parseSecondSearchTerms = (raw, splitOnWhitespace = false) => {
@@ -398,16 +406,16 @@ export const Table = ({
             {(secondSearchShow || descriptionSearchShow || searchShow) && (
                 <div className="flex justify-self-center md:justify-self-end gap-2 items-center">
                     {searchShow && (
-                        <span className="p-input-icon-right bg-white">
-                            <i className="pi pi-search bg-white" />
-                            <input value={search} onChange={handleSearchChange} placeholder="Search" className="px-4 py-2 shadow bg-white rounded-full text-lg" />
+                        <span className="p-input-icon-right table-search">
+                            <input value={search} onChange={handleSearchChange} placeholder="Search" />
+                            <i className="pi pi-search" />
                         </span>
                     )}
                     {renderSecondSearchInput()}
                     {descriptionSearchShow && (
-                        <span className="p-input-icon-right bg-white">
-                            <i className="pi pi-search bg-white" />
-                            <input value={descriptionSearch} onChange={handleDescriptionSearchChange} placeholder="Description Search" className="px-4 py-2 shadow bg-white rounded-full text-lg" />
+                        <span className="p-input-icon-right table-search">
+                            <input value={descriptionSearch} onChange={handleDescriptionSearchChange} placeholder="Description Search" />
+                            <i className="pi pi-search" />
                         </span>
                     )}
                 </div>
@@ -857,16 +865,16 @@ export const Table = ({
                 {(secondSearchShow || descriptionSearchShow || searchShow) && (
                     <div className="flex justify-self-center md:justify-self-end gap-2 items-center">
                         {searchShow && (
-                            <span className="p-input-icon-right bg-white">
-                                <i className="pi pi-search bg-white" />
-                                <input value={search} onChange={handleSearchChange} placeholder="Search" className="px-4 py-2 shadow bg-white rounded-full text-lg" />
+                            <span className="p-input-icon-right table-search">
+                                <input value={search} onChange={handleSearchChange} placeholder="Search" />
+                                <i className="pi pi-search" />
                             </span>
                         )}
                         {renderSecondSearchInput()}
                         {descriptionSearchShow && (
-                            <span className="p-input-icon-right bg-white">
-                                <i className="pi pi-search bg-white" />
-                                <input value={descriptionSearch} onChange={handleDescriptionSearchChange} placeholder="Description Search" className="px-4 py-2 shadow bg-white rounded-full text-lg" />
+                            <span className="p-input-icon-right table-search">
+                                <input value={descriptionSearch} onChange={handleDescriptionSearchChange} placeholder="Description Search" />
+                                <i className="pi pi-search" />
                             </span>
                         )}
                     </div>
@@ -985,12 +993,11 @@ export const Table = ({
                     header={showTableHeader ? (newBtn || !tableHeaderName || exportBtn ? leftToolbar : tableHeader) : null}
                     rowsPerPageOptions={rowsPerPageOptions ? rowsPerPageOptions : [15, 25, 50, 75]}
                     paginatorTemplate={pageShow && "CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"}
-                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} items"
+                    currentPageReportTemplate="Total ({first}-{last}) of {totalRecords} records · showing {rows} each page"
                     resizableColumns
                     columnResizeMode="expand"
                     showGridlines
                     stripedRows={stripedRows}
-                    autoLayout={autoLayout}
                     responsiveLayout="scroll"
                     selectionMode="checkbox"
                     isDataSelectable={isRowSelectable}

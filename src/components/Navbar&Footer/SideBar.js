@@ -6,7 +6,8 @@ export const MENU = [
   { label: 'Rooms', icon: 'hotel', items: ['Room Types', 'Physical Rooms', 'Inventory'] },
   { label: 'Revenue', icon: 'payments', items: ['Rate Plans', 'Payments', 'Reports'] },
   { label: 'Operations', icon: 'cleaning_services', items: ['Housekeeping', 'Maintenance', 'Services'] },
-  { label: 'Website', icon: 'web', items: ['Content', 'Reviews', 'Messages'] },
+  { label: 'Website', icon: 'web', items: ['Content', 'Reviews', 'Review Approval', 'Messages'] },
+  { label: 'Public Portal', icon: 'public', items: ['Rooms & Suites', 'Dining', 'Experiences', 'Facilities', 'Offers', 'Gallery', 'Destination', 'Contact', 'Approval'] },
   { label: 'System', icon: 'admin_panel_settings', items: ['Users', 'Settings', 'Audit Logs'] },
 ]
 

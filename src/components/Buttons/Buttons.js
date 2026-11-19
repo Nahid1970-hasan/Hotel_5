@@ -2,7 +2,15 @@ import { Button } from "primereact/button";
 import { AiFillDelete } from "react-icons/ai";
 import { BsSearch } from "react-icons/bs";
 import { TbEdit } from "react-icons/tb";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
+function useHistory() {
+    const navigate = useNavigate();
+    return {
+        push: (path) => navigate(path),
+        goBack: () => navigate(-1),
+    };
+}
 /** @className =  any className ex: padding/ margin /color*/
 /** @title = Title of the button ex: Save*/
 /** @disabled = Disable the button => true / false*/
@@ -12,8 +20,8 @@ import { useHistory } from "react-router-dom";
 /** @loading = if button disabled and loading */
 /** @type = button type ex: submit, reset */
 
-export const CommonButton = ({ type = "submit", className, title, disabled, label, icon, onClick, loading, bigButton }, ...rest) => {
-    return <Button type={type} label={label} title={title} icon={icon} disabled={disabled} className={`${!bigButton && "p-button-sm"} ${className}`} onClick={onClick} loading={loading} {...rest} />;
+export const CommonButton = ({ type = "submit", className, title, disabled, label, icon, onClick, loading, bigButton, ...rest }) => {
+    return <Button type={type} label={label} title={title} icon={icon} disabled={disabled} className={`${!bigButton && "p-button-sm"} ${className || ""}`} onClick={onClick} loading={loading} {...rest} />;
 };
 
 export const BackButton = () => {

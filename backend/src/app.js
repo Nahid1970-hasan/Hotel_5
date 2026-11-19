@@ -3,6 +3,8 @@ const cors = require('cors')
 const publicRoutes = require('./routes/public')
 const guestRoutes = require('./routes/guest')
 const adminRoutes = require('./routes/admin')
+const { router: publicPortalRoutes } = require('./routes/publicPortal')
+const { router: uploadRoutes, sendUpload } = require('./routes/uploads')
 const { requestContext, errorHandler } = require('./http')
 
 function createApp() {
@@ -15,6 +17,9 @@ function createApp() {
   })
   app.use('/api/v1', publicRoutes)
   app.use('/api/v1', guestRoutes)
+  app.get('/api/v1/uploads/:name', sendUpload)
+  app.use('/api/v1/admin/uploads', uploadRoutes)
+  app.use('/api/v1/admin/public-portal', publicPortalRoutes)
   app.use('/api/v1/admin', adminRoutes)
   app.use((req, res) => {
     res.status(404).json({

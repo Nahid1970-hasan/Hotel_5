@@ -591,7 +591,8 @@ router.post('/users', requirePermission('user.manage'), wrap((req, res) => {
   const password = String(req.body.password || '')
   const phone = String(req.body.phone || '').trim()
   const role = db.get(`SELECT * FROM roles WHERE name = ?`, [req.body.role])
-  if (name.length < 2 || !/^[a-z0-9._-]{3,}$/.test(username) || !email.includes('@') || password.length < 8 || !role) {
+  const usernameOk = /^[a-z0-9._-]{3,}$/.test(username) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)
+  if (name.length < 2 || !usernameOk || !email.includes('@') || password.length < 8 || !role) {
     throw problem(422, 'Full name, username, email, an 8-character password, and a role are required', 'INVALID')
   }
   if (db.get(`SELECT id FROM users WHERE email = ? COLLATE NOCASE`, [email])) throw problem(409, 'That email is already in use', 'DUPLICATE')

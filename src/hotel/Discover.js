@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { api, money } from './api'
+import { Btn, Field } from './admin/ui'
 import { PageIntro, useGuest } from './PublicLayout'
 
 function useList(path) {
   const [data, setData] = useState([])
-  const [error, setError] = useState('')
   useEffect(() => {
-    api(path).then((result) => setData(result.data)).catch((err) => setError(err.message))
+    api(path).then((result) => setData(result.data)).catch(() => setData([]))
   }, [path])
-  return { data, error }
+  return { data }
 }
 
 export function DiningPage() {
-  const { data, error } = useList('/dining')
+  const { data } = useList('/dining')
   return (
     <>
       <PageIntro kicker="Dining" title="Three rooms, one kitchen rhythm." lede="Tell us about allergies when you book. The kitchen marks what it can confirm that day." />
       <section className="section cards">
-        {error && <p className="error">{error}</p>}
         {data.map((venue) => (
           <article className="plain-card" key={venue.id}>
             <img src={venue.image_url} alt={`${venue.name} dining room`} />
@@ -38,12 +38,11 @@ export function DiningPage() {
 }
 
 export function FacilitiesPage() {
-  const { data, error } = useList('/facilities')
+  const { data } = useList('/facilities')
   return (
     <>
       <PageIntro kicker="Facilities" title="The parts of the house you can use." />
       <section className="section cards">
-        {error && <p className="error">{error}</p>}
         {data.map((item) => (
           <article className="plain-card" key={item.id}>
             <img src={item.image_url} alt={item.name} />
@@ -61,12 +60,11 @@ export function FacilitiesPage() {
 }
 
 export function ExperiencesPage() {
-  const { data, error } = useList('/experiences')
+  const { data } = useList('/experiences')
   return (
     <>
       <PageIntro kicker="Experiences" title="Outings arranged by the hotel." lede="These are enquiries, not instant tickets. Capacity is limited to the number shown." />
       <section className="section cards">
-        {error && <p className="error">{error}</p>}
         {data.map((item) => (
           <article className="plain-card" key={item.id}>
             <img src={item.image_url} alt="" />
@@ -87,12 +85,11 @@ export function ExperiencesPage() {
 }
 
 export function OffersPage() {
-  const { data, error } = useList('/offers')
+  const { data } = useList('/offers')
   return (
     <>
       <PageIntro kicker="Offers" title="Only the offers that are active." />
       <section className="section stack">
-        {error && <p className="error">{error}</p>}
         {data.map((offer) => (
           <article className="plain-card" key={offer.id}>
             <div className="split">
@@ -114,7 +111,7 @@ export function OffersPage() {
 }
 
 export function GalleryPage() {
-  const { data, error } = useList('/gallery')
+  const { data } = useList('/gallery')
   const [category, setCategory] = useState('All')
   const categories = ['All', ...new Set(data.map((item) => item.category))]
   const visible = data.filter((item) => category === 'All' || item.category === category)
@@ -122,7 +119,6 @@ export function GalleryPage() {
     <>
       <PageIntro kicker="Gallery" title="The house, the rooms, the shore." />
       <section className="section">
-        {error && <p className="error">{error}</p>}
         <div className="filters">
           {categories.map((item) => (
             <button key={item} type="button" className={item === category ? 'chip on' : 'chip'} onClick={() => setCategory(item)}>{item}</button>
@@ -142,12 +138,11 @@ export function GalleryPage() {
 }
 
 export function DestinationPage() {
-  const { data, error } = useList('/destination')
+  const { data } = useList('/destination')
   return (
     <>
       <PageIntro kicker="Destination" title="Cox's Bazar, from the hotel gate." lede="Travel times are typical, not a promise in holiday traffic." />
       <section className="section cards">
-        {error && <p className="error">{error}</p>}
         {data.map((item) => (
           <article className="plain-card" key={item.id}>
             <img src={item.image_url} alt="" />
@@ -166,15 +161,13 @@ export function DestinationPage() {
 
 export function ReviewsPage() {
   const [data, setData] = useState(null)
-  const [error, setError] = useState('')
   useEffect(() => {
-    api('/reviews').then((result) => setData(result.data)).catch((err) => setError(err.message))
+    api('/reviews').then((result) => setData(result.data)).catch(() => setData(null))
   }, [])
   return (
     <>
       <PageIntro kicker="Reviews" title={data ? `${data.summary.average || '–'} from ${data.summary.count} published notes` : 'Reviews'} lede="Only moderated notes from verified stays are published." />
       <section className="section stack">
-        {error && <p className="error">{error}</p>}
         {data?.reviews?.map((review) => (
           <article className="note" key={review.id}>
             <p className="stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</p>
@@ -190,7 +183,7 @@ export function ReviewsPage() {
 }
 
 export function FaqPage() {
-  const { data, error } = useList('/faqs')
+  const { data } = useList('/faqs')
   const groups = data.reduce((map, item) => {
     map[item.category] = map[item.category] || []
     map[item.category].push(item)
@@ -200,7 +193,6 @@ export function FaqPage() {
     <>
       <PageIntro kicker="FAQ" title="Before you write to us." />
       <section className="section faq stack">
-        {error && <p className="error">{error}</p>}
         {Object.entries(groups).map(([category, items]) => (
           <div key={category}>
             <h2>{category}</h2>
@@ -219,14 +211,13 @@ export function FaqPage() {
 
 export function PolicyPage({ slug }) {
   const [page, setPage] = useState(null)
-  const [error, setError] = useState('')
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
-    api(`/pages/${slug}`).then((result) => setPage(result.data)).catch((err) => setError(err.message))
+    api(`/pages/${slug}`).then((result) => setPage(result.data)).catch(() => setFailed(true))
   }, [slug])
   return (
     <section className="section" style={{ maxWidth: 800 }}>
-      {error && <p className="error">{error}</p>}
-      {!page && !error && <p>Loading…</p>}
+      {!page && !failed && <p>Loading…</p>}
       {page && (
         <>
           <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)' }}>{page.title}</h1>
@@ -240,21 +231,18 @@ export function PolicyPage({ slug }) {
 export function ContactPage() {
   const { hotel } = useGuest()
   const [params] = useSearchParams()
+  const notes = useList('/public-portal/contact')
   const [form, setForm] = useState({ name: '', email: '', phone: '', topic: params.get('topic') || 'General', message: '' })
-  const [status, setStatus] = useState('')
-  const [error, setError] = useState('')
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
 
   const submit = async (event) => {
     event.preventDefault()
-    setError('')
-    setStatus('')
     try {
-      await api('/contact', { method: 'POST', body: form })
-      setStatus('Message received. The hotel will reply by email.')
+      await api('/contact', { method: 'POST', body: form, notify: 'error' })
+      toast.success('Message received. The hotel will reply by email.')
       setForm((current) => ({ ...current, message: '' }))
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
@@ -263,16 +251,22 @@ export function ContactPage() {
       <PageIntro kicker="Contact" title="Write, or call the desk." />
       <section className="section detail">
         <form className="form" onSubmit={submit}>
-          {error && <p className="error">{error}</p>}
-          {status && <p className="ok">{status}</p>}
-          <label>Name<input required value={form.name} onChange={set('name')} /></label>
-          <label>Email<input type="email" required value={form.email} onChange={set('email')} /></label>
-          <label>Phone<input value={form.phone} onChange={set('phone')} /></label>
-          <label>Topic<input value={form.topic} onChange={set('topic')} /></label>
-          <label className="wide">Message<textarea required value={form.message} onChange={set('message')} /></label>
-          <button className="btn" type="submit">Send</button>
+          <Field label="Name" name="name" required value={form.name} onChange={set('name')} />
+          <Field label="Email" name="email" required value={form.email} onChange={set('email')} />
+          <Field label="Phone" name="phone" value={form.phone} onChange={set('phone')} />
+          <Field label="Topic" name="topic" value={form.topic} onChange={set('topic')} />
+          <Field className="wide" label="Message" type="textarea" name="message" required value={form.message} onChange={set('message')} />
+          <Btn className="btn" type="submit" label="Send" />
         </form>
         <aside>
+          {notes.data.length > 0 && notes.data.map((note) => (
+            <article key={note.id} style={{ marginBottom: 16 }}>
+              <h3>{note.title}</h3>
+              <p>{note.summary}</p>
+              {note.phone && <p>{note.phone}</p>}
+              {note.email && <p>{note.email}</p>}
+            </article>
+          ))}
           <p>{hotel?.address}</p>
           <p>{hotel?.city}, {hotel?.country}</p>
           <p><a href={`tel:${hotel?.phone}`}>{hotel?.phone}</a></p>

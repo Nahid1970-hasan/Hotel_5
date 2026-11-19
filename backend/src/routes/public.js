@@ -4,6 +4,7 @@ const crypto = require('crypto')
 const db = require('../db')
 const domain = require('../domain')
 const { login, readUser } = require('../auth')
+const portal = require('./publicPortal')
 const { problem, send } = require('../http')
 
 const router = Router()
@@ -62,28 +63,32 @@ router.get('/availability', wrap((req, res) => {
 }))
 
 router.get('/offers', wrap((req, res) => {
-  send(res, db.all(`SELECT * FROM offers WHERE active = 1 ORDER BY id DESC`), 'Offers retrieved')
+  send(res, portal.publicRows('offers').map(portal.asOffer), 'Offers retrieved')
 }))
 
 router.get('/facilities', wrap((req, res) => {
-  send(res, db.all(`SELECT * FROM facilities ORDER BY sort_order, id`), 'Facilities retrieved')
+  send(res, portal.publicRows('facilities').map(portal.asFacility), 'Facilities retrieved')
 }))
 
 router.get('/dining', wrap((req, res) => {
-  send(res, db.all(`SELECT * FROM dining_venues ORDER BY id`), 'Dining retrieved')
+  send(res, portal.publicRows('dining').map(portal.asDining), 'Dining retrieved')
 }))
 
 router.get('/experiences', wrap((req, res) => {
-  const rows = db.all(`SELECT * FROM experiences WHERE active = 1 ORDER BY id`)
-  send(res, rows.map((row) => ({ ...row, price: domain.money(row.price_cents) })), 'Experiences retrieved')
+  send(res, portal.publicRows('experiences').map(portal.asExperience), 'Experiences retrieved')
 }))
 
 router.get('/gallery', wrap((req, res) => {
-  send(res, db.all(`SELECT * FROM gallery_images ORDER BY sort_order, id`), 'Gallery retrieved')
+  send(res, portal.publicRows('gallery').map(portal.asGallery), 'Gallery retrieved')
 }))
 
 router.get('/destination', wrap((req, res) => {
-  send(res, db.all(`SELECT * FROM attractions ORDER BY id`), 'Destination retrieved')
+  send(res, portal.publicRows('destination').map(portal.asDestination), 'Destination retrieved')
+}))
+
+router.get('/public-portal/:section', wrap((req, res) => {
+  if (!portal.SECTIONS.includes(req.params.section)) throw problem(404, 'That public section was not found', 'NOT_FOUND')
+  send(res, portal.publicRows(req.params.section).map(portal.asCard), 'Approved public items retrieved')
 }))
 
 router.get('/reviews', wrap((req, res) => {

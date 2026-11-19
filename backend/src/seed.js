@@ -69,7 +69,7 @@ async function seed(helpers) {
   }
 
   await staff('Amira Rahman', 'amira.rahman', 'amira@gmail.com', 'Horizon#2026', 'Front Desk')
-  await staff('Hasan', 'hasan', 'hasan@gmail.com', 'hasan1970', 'Super Admin')
+  await staff('Hasan', 'hasan', 'hasan@gmail.com', 'Hasan@1970', 'Super Admin')
   const deskId = await staff('Karim Hossain', 'karim.hossain', 'karim.hossain@grandhorizon.hotel', 'Desk#2026', 'Front Desk')
   await staff('Nusrat Ahmed', 'nusrat.ahmed', 'nusrat.ahmed@grandhorizon.hotel', 'House#2026', 'Housekeeping')
   const guestUserId = insert(

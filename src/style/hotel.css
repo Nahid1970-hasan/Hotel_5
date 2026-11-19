@@ -1,3 +1,7 @@
+html { font-size: 16px; }
+html:has(.shell), html:has(.staff-login) { font-size: 14px; }
+.gh .p-button.btn { box-shadow: none; font-family: inherit; }
+
 .gh {
   --ink: #1c2622;
   --muted: #5e6b64;
@@ -55,7 +59,6 @@
 .nav-links a { text-decoration: none; font-size: 14px; color: var(--ink); }
 .nav-links a.active, .nav-links a:hover { color: var(--green-2); }
 .nav-actions { display: flex; align-items: center; gap: 8px; }
-.menu-btn { display: none; }
 
 .btn {
   display: inline-flex;
@@ -67,13 +70,15 @@
   border-radius: 999px;
   border: 1px solid var(--green);
   background: var(--green);
-  color: #f7f3ea;
+  color: #fff;
   text-decoration: none;
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 .btn.light { background: transparent; color: var(--green); }
+.gh a.btn { color: #fff; }
+.gh a.btn.light { color: var(--green); }
 .btn.gold { background: var(--gold); border-color: var(--gold); color: #fffaf3; }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn:focus-visible, .gh input:focus-visible, .gh select:focus-visible, .gh textarea:focus-visible, .gh a:focus-visible, .date-trigger:focus-visible, .stay-cal .react-datepicker__day:focus-visible {
@@ -114,7 +119,9 @@
   font: inherit;
   padding: 8px 10px;
 }
-.form textarea { min-height: 120px; resize: vertical; }
+.form textarea, .search textarea { min-height: 120px; resize: vertical; }
+.form .p-float-label > label, .search .p-float-label > label { display: none; }
+.form .p-password, .search .p-password, .form .p-inputtext, .search .p-inputtext, .form .p-inputtextarea { width: 100%; }
 
 .date-field { position: relative; display: grid; gap: 6px; }
 .date-trigger {
@@ -282,9 +289,8 @@
 .stars { color: var(--gold); letter-spacing: 2px; }
 
 @media (max-width: 980px) {
-  .menu-btn { display: inline-flex; }
-  .nav-links { display: none; position: absolute; top: 72px; left: 0; right: 0; flex-direction: column; padding: 12px 20px 18px; background: var(--ivory); border-bottom: 1px solid var(--line); }
-  .nav-links.open { display: flex; }
+  .topbar { flex-wrap: wrap; row-gap: 10px; padding-top: 12px; padding-bottom: 12px; }
+  .nav-links { flex-wrap: wrap; gap: 10px 14px; }
   .search, .cards, .split, .detail, .foot-grid, .form.two { grid-template-columns: 1fr; }
   .hero { min-height: 70vh; }
   .gallery-main { height: 240px; }

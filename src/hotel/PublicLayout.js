@@ -23,7 +23,6 @@ export default function PublicLayout() {
   const location = useLocation()
   const [hotel, setHotel] = useState(null)
   const [guest, setGuest] = useState(null)
-  const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   const refresh = async () => {
@@ -45,7 +44,6 @@ export default function PublicLayout() {
   }, [])
 
   useEffect(() => {
-    setOpen(false)
     window.scrollTo(0, 0)
   }, [location.pathname])
 
@@ -73,10 +71,7 @@ export default function PublicLayout() {
             <strong>Luxury Hotel</strong>
             <span>Cox&apos;s Bazar</span>
           </Link>
-          <button type="button" className="btn light menu-btn" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-            Menu
-          </button>
-          <nav className={open ? 'nav-links open' : 'nav-links'} aria-label="Primary">
+          <nav className="nav-links" aria-label="Primary">
             {links.map(([href, label]) => (
               <NavLink key={href} to={href} className={({ isActive }) => (isActive ? 'active' : undefined)}>{label}</NavLink>
             ))}

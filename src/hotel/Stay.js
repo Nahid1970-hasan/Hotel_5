@@ -2,10 +2,12 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { shift } from '@floating-ui/react'
 import DatePicker from 'react-datepicker'
+import { toast } from 'react-toastify'
 import 'react-datepicker/dist/react-datepicker.css'
 
 const popperModifiers = [shift({ padding: 12 })]
 import { addDays, api, money, nightCount, prettyDate } from './api'
+import { Btn, Field } from './admin/ui'
 import { PageIntro, useGuest } from './PublicLayout'
 
 function isoToDate(iso) {
@@ -168,16 +170,17 @@ export function SearchForm({ hotel, values }) {
           <StayRangeNote checkIn={form.checkIn} checkOut={form.checkOut} />
         </DatePicker>
       </div>
-      <label>Adults<input type="number" min="1" max="8" required value={form.adults} onChange={set('adults')} /></label>
-      <label>Children<input type="number" min="0" max="6" value={form.children} onChange={set('children')} /></label>
-      <label>Rooms<input type="number" min="1" max="5" required value={form.rooms} onChange={set('rooms')} /></label>
-      <button className="btn" type="submit">Check availability</button>
+      <Field label="Adults" type="number" name="adults" required value={form.adults} onChange={set('adults')} />
+      <Field label="Children" type="number" name="children" value={form.children} onChange={set('children')} />
+      <Field label="Rooms" type="number" name="rooms" required value={form.rooms} onChange={set('rooms')} />
+      <Btn className="btn" type="submit" label="Check availability" />
     </form>
   )
 }
 
 export function RoomsPage() {
   const [rooms, setRooms] = useState([])
+  const [stories, setStories] = useState([])
   const [error, setError] = useState('')
   const [category, setCategory] = useState('All')
   const [sort, setSort] = useState('featured')
@@ -185,6 +188,7 @@ export function RoomsPage() {
 
   useEffect(() => {
     api('/room-types').then((result) => setRooms(result.data)).catch((err) => setError(err.message))
+    api('/public-portal/rooms-and-suites').then((result) => setStories(result.data)).catch(() => setStories([]))
   }, [])
 
   const categories = ['All', ...new Set(rooms.map((room) => room.category))]
@@ -218,7 +222,21 @@ export function RoomsPage() {
             </select>
           </label>
         </div>
-        {error && <p className="error">{error}</p>}
+        {stories.length > 0 && (
+          <div className="stack" style={{ marginBottom: 22 }}>
+            {stories.map((story) => (
+              <article className="plain-card" key={story.id}>
+                {story.imageUrl && <img src={story.imageUrl} alt="" style={{ height: 180, width: '100%', objectFit: 'cover' }} />}
+                <div>
+                  {story.category && <p className="kicker" style={{ color: '#9c7b45' }}>{story.category}</p>}
+                  <h3>{story.title}</h3>
+                  <p>{story.summary}</p>
+                  {story.priceLabel && <p>{story.priceLabel}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
         <div className="cards">
           {visible.map((room) => (
             <Link className="room-card" key={room.id} to={`/rooms/${room.slug}`}>
@@ -248,7 +266,7 @@ export function RoomDetailPage() {
     api(`/room-types/${slug}`).then((result) => { setRoom(result.data); setPhoto(0) }).catch((err) => setError(err.message))
   }, [slug])
 
-  if (error) return <section className="section"><p className="error">{error}</p></section>
+  if (error) return <section className="section"><p>This room could not be opened.</p></section>
   if (!room) return <section className="section"><p>Loading room…</p></section>
   const image = room.images[photo] || room.images[0]
 
@@ -316,7 +334,6 @@ export function AvailabilityPage() {
       <SearchForm hotel={hotel} values={values} />
       <section className="section">
         {loading && <p>Checking the books…</p>}
-        {error && <p className="error">{error}</p>}
         {result && <p>{prettyDate(result.checkIn)} to {prettyDate(result.checkOut)} · {result.nights} nights · {result.adults} adults · {result.children} children · {result.rooms} room{Number(result.rooms) > 1 ? 's' : ''}</p>}
         <div className="stack">
           {result?.roomTypes?.map((room) => (
@@ -412,10 +429,12 @@ export function BookPage() {
         const room = result.data.roomTypes.find((item) => item.slug === stay.room)
         const plan = room?.ratePlans?.find((item) => String(item.id) === String(stay.rate))
         setQuote(room && plan ? { room, plan, search: result.data } : null)
-        if (!room || !plan) setError('That room is no longer available for these dates.')
-        else setError('')
+        if (!room || !plan) {
+          setError('unavailable')
+          toast.error('That room is no longer available for these dates.')
+        } else setError('')
       })
-      .catch((err) => setError(err.message))
+      .catch(() => setError('unavailable'))
     return undefined
   }, [stay, promo])
 
@@ -446,8 +465,8 @@ export function BookPage() {
         },
       })
       setBooking(result.data)
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     } finally {
       setSaving(false)
     }
@@ -459,8 +478,8 @@ export function BookPage() {
     try {
       const result = await api('/payments/confirm', { method: 'POST', body: { paymentId: payment.id } })
       setBooking(result.data)
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     } finally {
       setSaving(false)
     }
@@ -478,8 +497,7 @@ export function BookPage() {
           <p>Total {money(booking.total, booking.currency)} · {booking.status}</p>
           <p>A confirmation record is stored for {booking.guest.email}. Card numbers are not collected or stored.</p>
         </div>
-        {pending && <button className="btn" type="button" onClick={confirmPayment} disabled={saving}>Complete secure payment</button>}
-        {error && <p className="error">{error}</p>}
+        {pending && <Btn className="btn" label="Complete secure payment" onClick={confirmPayment} disabled={saving} />}
         <p><Link to="/my-bookings">View your stays</Link></p>
       </section>
     )
@@ -489,22 +507,21 @@ export function BookPage() {
     <section className="section">
       <p className="kicker" style={{ color: '#9c7b45' }}>Reservation</p>
       <h1 style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>Review the stay before it is held.</h1>
-      {error && <p className="error">{error}</p>}
       {!quote && !error && <p>Preparing the quote…</p>}
       {quote && (
         <div className="detail">
           <form className="form" onSubmit={submit}>
-            <label>Full name<input required value={form.name} onChange={set('name')} /></label>
-            <label>Email<input type="email" required value={form.email} onChange={set('email')} /></label>
-            <label>Phone<input value={form.phone} onChange={set('phone')} /></label>
-            <label>Promotion code<input value={promo} onChange={(event) => setPromo(event.target.value.toUpperCase())} placeholder="CORAL10 or STAY4" /></label>
-            <label className="wide">Requests<textarea value={form.specialRequests} onChange={set('specialRequests')} placeholder="Airport car, cot, celebration" /></label>
+            <Field label="Full name" name="guestName" required value={form.name} onChange={set('name')} />
+            <Field label="Email" name="guestEmail" required value={form.email} onChange={set('email')} />
+            <Field label="Phone" name="guestPhone" value={form.phone} onChange={set('phone')} />
+            <Field label="Promotion code" name="promo" value={promo} onChange={(event) => setPromo(event.target.value.toUpperCase())} placeholder="CORAL10 or STAY4" />
+            <Field className="wide" label="Requests" type="textarea" name="specialRequests" value={form.specialRequests} onChange={set('specialRequests')} placeholder="Airport car, cot, celebration" />
             <fieldset className="wide">
               <legend>Guarantee</legend>
               <label><input type="radio" name="method" value="pay_at_hotel" checked={form.method === 'pay_at_hotel'} onChange={set('method')} /> Pay at the hotel. The room is confirmed now and settled on arrival.</label>
               <label><input type="radio" name="method" value="card" checked={form.method === 'card'} onChange={set('method')} /> Pay now. The room is held until the server verifies payment. No card number is entered here.</label>
             </fieldset>
-            <button className="btn" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Confirm reservation'}</button>
+            <Btn className="btn" type="submit" disabled={saving} label={saving ? 'Saving…' : 'Confirm reservation'} />
           </form>
           <aside className="plain-card">
             <div className="breakdown">

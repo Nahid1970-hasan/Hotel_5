@@ -1,3 +1,15 @@
+import { toast } from 'react-toastify'
+
+const mutations = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+function showError(message) {
+  toast.error(message, { toastId: message })
+}
+
+function showSuccess(message) {
+  toast.success(message, { toastId: `ok:${message}` })
+}
+
 export class ApiError extends Error {
   constructor(message, status, payload) {
     super(message)
@@ -19,20 +31,52 @@ export function setToken(kind, value) {
   else localStorage.removeItem(key)
 }
 
-export async function api(path, { method = 'GET', body, auth, headers } = {}) {
+export async function api(path, { method = 'GET', body, auth, headers, notify = true } = {}) {
+  const verb = method.toUpperCase()
   const requestHeaders = { ...(headers || {}) }
   if (body !== undefined) requestHeaders['Content-Type'] = 'application/json'
   if (auth && token(auth)) requestHeaders.Authorization = `Bearer ${token(auth)}`
-  const response = await fetch(`/api/v1${path}`, {
-    method,
-    headers: requestHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+  let response
+  try {
+    response = await fetch(`/api/v1${path}`, {
+      method,
+      headers: requestHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  } catch (error) {
+    if (notify !== false) showError('The server could not be reached')
+    throw error
+  }
   const payload = await response.json().catch(() => ({ success: false, message: 'The server returned an unreadable response' }))
   if (!response.ok || payload.success === false) {
-    throw new ApiError(payload.message || 'Request failed', response.status, payload)
+    const message = payload.message || 'Request failed'
+    if (notify === true || notify === 'error') showError(message)
+    throw new ApiError(message, response.status, payload)
   }
+  if ((notify === true || notify === 'success') && mutations.has(verb) && payload.message) showSuccess(payload.message)
   return payload
+}
+
+export async function uploadFile(file) {
+  const body = new FormData()
+  body.append('file', file)
+  const headers = {}
+  if (token('staff')) headers.Authorization = `Bearer ${token('staff')}`
+  let response
+  try {
+    response = await fetch('/api/v1/admin/uploads', { method: 'POST', headers, body })
+  } catch (error) {
+    showError('The server could not be reached')
+    throw error
+  }
+  const payload = await response.json().catch(() => ({ success: false, message: 'The server returned an unreadable response' }))
+  if (!response.ok || payload.success === false) {
+    const message = payload.message || 'Upload failed'
+    showError(message)
+    throw new ApiError(message, response.status, payload)
+  }
+  showSuccess(payload.message || 'Image uploaded')
+  return payload.data.url
 }
 
 export function money(amount, currency = 'USD') {

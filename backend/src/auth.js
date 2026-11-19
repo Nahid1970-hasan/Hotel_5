@@ -56,13 +56,18 @@ async function login(email, password, portal) {
   const key = `login:${String(email || '').toLowerCase()}`
   if (!rateLimit(key, 8, 15 * 60 * 1000)) throw problem(429, 'Too many sign-in attempts. Wait and try again.', 'RATE_LIMIT')
   const loginId = String(email || '').trim()
-  const user = db.get(
-    `SELECT * FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE`,
+  const candidates = db.all(
+    `SELECT * FROM users WHERE status = 'ACTIVE' AND (username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE)`,
     [loginId, loginId],
   )
-  if (!user || user.status !== 'ACTIVE') throw problem(401, 'Username or password is incorrect', 'AUTH')
-  const match = await bcrypt.compare(String(password || ''), user.password_hash)
-  if (!match) throw problem(401, 'Username or password is incorrect', 'AUTH')
+  let user = null
+  for (const candidate of candidates) {
+    if (await bcrypt.compare(String(password || ''), candidate.password_hash)) {
+      user = candidate
+      break
+    }
+  }
+  if (!user) throw problem(401, 'Username or password is incorrect', 'AUTH')
   if (portal === 'staff' && user.kind !== 'staff') throw problem(403, 'This sign-in is for hotel staff', 'PORTAL')
   if (portal === 'guest' && user.kind !== 'guest') throw problem(403, 'Use the staff sign-in for this account', 'PORTAL')
   if (portal === 'staff' && !canSignIn(user)) throw problem(403, 'Only Super Admin and Front Desk can sign in', 'PORTAL')

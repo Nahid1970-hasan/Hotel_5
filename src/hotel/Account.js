@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { api, money, prettyDate, setToken } from './api'
+import { Btn, Field } from './admin/ui'
 import { useGuest } from './PublicLayout'
 
 function AuthShell({ title, lede, children }) {
@@ -17,28 +19,25 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { refresh } = useGuest()
   const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
 
   const submit = async (event) => {
     event.preventDefault()
-    setError('')
     try {
       const result = await api('/auth/login', { method: 'POST', body: { ...form, portal: 'guest' } })
       setToken('guest', result.data.token)
       await refresh()
       navigate('/my-bookings')
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   return (
     <AuthShell title="Guest sign in" lede="Use the email on your reservation.">
       <form className="form" onSubmit={submit}>
-        {error && <p className="error">{error}</p>}
-        <label>Email<input type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-        <label>Password<input type="password" required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
-        <button className="btn" type="submit">Sign in</button>
+        <Field label="Email" name="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+        <Field label="Password" type="password" name="password" required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+        <Btn className="btn" type="submit" label="Sign in" />
       </form>
       <p className="demo">Sample guest: lina.moreau@example.com / Guest#2026</p>
       <p><Link to="/register">Create an account</Link> · <Link to="/forgot-password">Forgot password</Link></p>
@@ -50,31 +49,28 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const { refresh } = useGuest()
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
-  const [error, setError] = useState('')
   const set = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
 
   const submit = async (event) => {
     event.preventDefault()
-    setError('')
     try {
       const result = await api('/auth/register', { method: 'POST', body: form })
       setToken('guest', result.data.token)
       await refresh()
       navigate('/my-bookings')
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   return (
     <AuthShell title="Create a guest account" lede="An account is optional. You can still book without one.">
       <form className="form" onSubmit={submit}>
-        {error && <p className="error">{error}</p>}
-        <label>Name<input required value={form.name} onChange={set('name')} /></label>
-        <label>Email<input type="email" required value={form.email} onChange={set('email')} /></label>
-        <label>Phone<input value={form.phone} onChange={set('phone')} /></label>
-        <label>Password<input type="password" required minLength={8} value={form.password} onChange={set('password')} /></label>
-        <button className="btn" type="submit">Create account</button>
+        <Field label="Name" name="name" required value={form.name} onChange={set('name')} />
+        <Field label="Email" name="email" required value={form.email} onChange={set('email')} />
+        <Field label="Phone" name="phone" value={form.phone} onChange={set('phone')} />
+        <Field label="Password" type="password" name="password" required minLength={8} value={form.password} onChange={set('password')} />
+        <Btn className="btn" type="submit" label="Create account" />
       </form>
     </AuthShell>
   )
@@ -84,44 +80,36 @@ export function ForgotPage() {
   const [email, setEmail] = useState('')
   const [token, setReset] = useState('')
   const [password, setPassword] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
 
   const requestCode = async (event) => {
     event.preventDefault()
-    setError('')
     try {
       const result = await api('/auth/forgot-password', { method: 'POST', body: { email } })
-      setMessage(result.message)
       if (result.data.resetToken) setReset(result.data.resetToken)
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   const reset = async (event) => {
     event.preventDefault()
-    setError('')
     try {
-      const result = await api('/auth/reset-password', { method: 'POST', body: { email, token, password } })
-      setMessage(result.message)
-    } catch (err) {
-      setError(err.message)
+      await api('/auth/reset-password', { method: 'POST', body: { email, token, password } })
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   return (
     <AuthShell title="Reset a password" lede="In this local demo the reset code is shown here instead of being emailed.">
-      {error && <p className="error">{error}</p>}
-      {message && <p className="ok">{message}</p>}
       <form className="form" onSubmit={requestCode}>
-        <label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-        <button className="btn light" type="submit">Request code</button>
+        <Field label="Email" name="resetEmail" required value={email} onChange={(event) => setEmail(event.target.value)} />
+        <Btn className="btn light" type="submit" label="Request code" />
       </form>
       <form className="form" onSubmit={reset}>
-        <label>Reset code<input value={token} onChange={(event) => setReset(event.target.value)} /></label>
-        <label>New password<input type="password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} /></label>
-        <button className="btn" type="submit">Update password</button>
+        <Field label="Reset code" name="resetCode" value={token} onChange={(event) => setReset(event.target.value)} />
+        <Field label="New password" type="password" name="newPassword" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+        <Btn className="btn" type="submit" label="Update password" />
       </form>
     </AuthShell>
   )
@@ -132,11 +120,9 @@ export function MyBookingsPage() {
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [services, setServices] = useState([])
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
 
   const load = () => {
-    api('/me/bookings', { auth: 'guest' }).then((result) => setBookings(result.data)).catch((err) => setError(err.message))
+    api('/me/bookings', { auth: 'guest' }).then((result) => setBookings(result.data)).catch(() => setBookings([]))
     api('/services').then((result) => setServices(result.data)).catch(() => setServices([]))
   }
 
@@ -166,13 +152,11 @@ export function MyBookingsPage() {
           <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 3.6rem)' }}>{guest.guest.name}</h1>
           <p>{guest.guest.email}</p>
         </div>
-        <button className="btn light" type="button" onClick={logout}>Sign out</button>
+        <Btn className="btn light" label="Sign out" onClick={logout} />
       </div>
-      {error && <p className="error">{error}</p>}
-      {message && <p className="ok">{message}</p>}
       <div className="stack">
         {bookings.map((booking) => (
-          <BookingCard key={booking.id} booking={booking} services={services} onChange={(text) => { setMessage(text); load() }} onError={setError} />
+          <BookingCard key={booking.id} booking={booking} services={services} onChange={load} />
         ))}
         {bookings.length === 0 && <p>No stays yet.</p>}
       </div>
@@ -180,38 +164,40 @@ export function MyBookingsPage() {
   )
 }
 
-function BookingCard({ booking, services, onChange, onError }) {
+function BookingCard({ booking, services, onChange }) {
   const [request, setRequest] = useState({ serviceType: 'Airport car', details: '' })
   const [review, setReview] = useState({ rating: 5, title: '', comment: '' })
 
   const cancel = async () => {
-    onError('')
     try {
-      await api(`/me/bookings/${booking.id}/cancel`, { method: 'POST', auth: 'guest', body: { reason: 'Guest cancellation' } })
-      onChange(`${booking.reference} was cancelled.`)
-    } catch (err) {
-      onError(err.message)
+      await api(`/me/bookings/${booking.id}/cancel`, { method: 'POST', auth: 'guest', body: { reason: 'Guest cancellation' }, notify: 'error' })
+      toast.success(`${booking.reference} was cancelled.`)
+      onChange()
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   const sendRequest = async (event) => {
     event.preventDefault()
     try {
-      await api(`/me/bookings/${booking.id}/service-requests`, { method: 'POST', auth: 'guest', body: request })
+      await api(`/me/bookings/${booking.id}/service-requests`, { method: 'POST', auth: 'guest', body: request, notify: 'error' })
       setRequest((current) => ({ ...current, details: '' }))
-      onChange('Request sent to the hotel.')
-    } catch (err) {
-      onError(err.message)
+      toast.success('Request sent to the hotel.')
+      onChange()
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
   const sendReview = async (event) => {
     event.preventDefault()
     try {
-      await api(`/me/bookings/${booking.id}/reviews`, { method: 'POST', auth: 'guest', body: review })
-      onChange('Review submitted for moderation.')
-    } catch (err) {
-      onError(err.message)
+      await api(`/me/bookings/${booking.id}/reviews`, { method: 'POST', auth: 'guest', body: review, notify: 'error' })
+      toast.success('Review submitted for moderation.')
+      onChange()
+    } catch {
+      // The request toast already reported the error.
     }
   }
 
@@ -226,7 +212,7 @@ function BookingCard({ booking, services, onChange, onError }) {
       <p>Room {money(booking.subtotal, booking.currency)} · Discount {money(booking.discount, booking.currency)} · Fees {money(booking.serviceFee + booking.tax, booking.currency)} · Total {money(booking.total, booking.currency)}</p>
       <p>Payment {booking.payments.map((payment) => `${payment.method} ${payment.status} ${money(payment.amount, payment.currency)}`).join(', ')}</p>
       {booking.lines[0]?.nights?.length > 0 && <p>Nightly {booking.lines[0].nights.map((night) => `${prettyDate(night.date)} ${money(night.rate, booking.currency)}`).join(' · ')}</p>}
-      {['PENDING', 'CONFIRMED'].includes(booking.status) && <button className="btn light" type="button" onClick={cancel}>Cancel reservation</button>}
+      {['PENDING', 'CONFIRMED'].includes(booking.status) && <Btn className="btn light" label="Cancel reservation" onClick={cancel} />}
       {['CONFIRMED', 'CHECKED_IN'].includes(booking.status) && (
         <form className="form" onSubmit={sendRequest}>
           <label>Request
@@ -235,8 +221,8 @@ function BookingCard({ booking, services, onChange, onError }) {
               <option>Change of dates</option>
             </select>
           </label>
-          <label>Note<input required value={request.details} onChange={(event) => setRequest({ ...request, details: event.target.value })} /></label>
-          <button className="btn light" type="submit">Send request</button>
+          <Field label="Note" name="requestNote" required value={request.details} onChange={(event) => setRequest({ ...request, details: event.target.value })} />
+          <Btn className="btn light" type="submit" label="Send request" />
         </form>
       )}
       {booking.status === 'CHECKED_OUT' && (
@@ -246,9 +232,9 @@ function BookingCard({ booking, services, onChange, onError }) {
               {[5, 4, 3, 2, 1].map((score) => <option key={score} value={score}>{score}</option>)}
             </select>
           </label>
-          <label>Title<input value={review.title} onChange={(event) => setReview({ ...review, title: event.target.value })} /></label>
-          <label>Comment<textarea required value={review.comment} onChange={(event) => setReview({ ...review, comment: event.target.value })} /></label>
-          <button className="btn light" type="submit">Submit review</button>
+          <Field label="Title" name="reviewTitle" value={review.title} onChange={(event) => setReview({ ...review, title: event.target.value })} />
+          <Field label="Comment" type="textarea" name="reviewComment" required value={review.comment} onChange={(event) => setReview({ ...review, comment: event.target.value })} />
+          <Btn className="btn light" type="submit" label="Submit review" />
         </form>
       )}
     </article>
